@@ -1,0 +1,2702 @@
+
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Quicksand:wght@400;500;600&family=Fredoka+One&family=Press+Start+2P&family=Creepster&family=Nosifer&family=Roboto:wght@400;500&display=swap');
+
+/* Root font size - applies theme variable globally */
+html {
+  font-size: var(--font-size-base, 18px);
+}
+
+/* Theme override for editable category label text size */
+.budui-edit-category-label {
+  font-size: 16px !important; /* Change this value as needed */
+}
+
+/* Default font (respects theme override) */
+body, .pipboy-theme {
+  font-family: var(--font-primary, "VT323"), monospace;
+  font-size: var(--font-size-base, 18px);
+}
+
+/* Remove green glowing border from main app container */
+.pipboy-theme {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Force theme font on all elements unless overridden */
+.pipboy-theme * {
+  font-family: inherit;
+}
+
+/* Apply button font size from theme variable */
+.pipboy-theme button:not(.budui-lock-btn):not(.budui-accordion-btn),
+.budui-action-btn {
+  font-size: var(--btn-font-size, 22px) !important;
+}
+
+/* Accordion buttons use their own variables */
+.budui-accordion-btn.main-cat,
+[data-theme] .budui-accordion-btn.main-cat {
+  font-size: var(--accordion-main-font-size, 28px) !important;
+}
+.budui-accordion-btn.cat,
+[data-theme] .budui-accordion-btn.cat {
+  font-size: var(--accordion-cat-font-size, 22px) !important;
+}
+
+/* Sub-category total spans inside accordion buttons */
+#housingCategoryTotalBtn,
+#transportCategoryTotalBtn,
+#multimediaCategoryTotalBtn,
+#savingsCategoryTotalBtn,
+#othersCategoryTotalBtn,
+.budui-accordion-btn.cat span,
+[data-theme] .budui-accordion-btn.cat span {
+  font-size: var(--subcat-total-font-size, 24px) !important;
+}
+
+/* Apply base font size to common elements */
+.pipboy-theme p,
+.pipboy-theme span,
+.pipboy-theme div,
+.pipboy-theme li,
+.pipboy-theme label {
+  font-size: var(--font-size-base, 18px);
+}
+
+/* Make unlocked (editable) fields visually obvious */
+.pipboy-theme input:not([readonly]):not([disabled]),
+input:not([readonly]):not([disabled]),
+.pipboy-theme textarea:not([readonly]):not([disabled]),
+textarea:not([readonly]):not([disabled]) {
+  border: 2.5px solid var(--color-accent-mid) !important;
+  background: var(--color-bg-panel-strong) !important;
+  color: var(--color-pipboy-theme) !important;
+  box-shadow: 0 0 8px var(--color-accent-mid-glow), 0 0 2px var(--color-pipboy-theme) inset;
+  outline: 2px solid var(--color-accent-mid);
+  outline-offset: 1.5px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+/* Remove editing effect from unlocked Total fields */
+.pipboy-theme input.budui-total:not([readonly]):not([disabled]),
+input.budui-total:not([readonly]):not([disabled]) {
+  border: 1.5px solid var(--color-pipboy-theme) !important;
+  background: var(--color-bg-panel-medium-strong) !important;
+  color: var(--color-pipboy-theme) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove editing effect from login fields */
+#loginView input {
+  border: 1.5px solid var(--color-pipboy-theme) !important;
+  background: var(--color-bg-panel-medium-strong) !important;
+  color: var(--color-pipboy-theme) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove editing effect from modal input fields */
+.budui-modal input:not([readonly]):not([disabled]),
+.budui-modal-content input:not([readonly]):not([disabled]),
+.pipboy-modal input:not([readonly]):not([disabled]) {
+  border: 1.5px solid var(--color-pipboy-theme) !important;
+  background: var(--color-bg-panel-medium-strong) !important;
+  color: var(--color-pipboy-theme) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Delete confirmation button - "click again" style */
+.delete-confirm-active {
+  background: var(--color-error) !important;
+  color: var(--color-bg-main) !important;
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 12px var(--color-error) !important;
+  animation: deleteConfirmPulse 0.5s infinite alternate;
+}
+@keyframes deleteConfirmPulse {
+  0% { box-shadow: 0 0 8px var(--color-error); }
+  100% { box-shadow: 0 0 16px var(--color-error); }
+}
+
+/* Modal amount input styling */
+#modalEditAmt, #modalEditDesc {
+  width: 240px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+
+
+/* =============================================
+   THEME: DEFAULT (Pip-Boy Green)
+   ============================================= */
+:root {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #0a1f14;
+  --color-bg-gradient-secondary: #1a3a2a;
+  --color-bg-panel: rgba(10, 31, 20, 0.7);
+  --color-bg-panel-strong: rgba(10, 31, 20, 0.85);
+  --color-bg-panel-light: rgba(10, 31, 20, 0.5);
+  --color-bg-panel-medium: rgba(10, 31, 20, 0.6);
+  --color-bg-panel-medium-strong: rgba(10, 31, 20, 0.65);
+  --color-bg-panel-extra-strong: rgba(10, 31, 20, 0.95);
+  --color-bg-panel-80: rgba(10, 31, 20, 0.8);
+  --color-bg-panel-30: rgba(10, 31, 20, 0.3);
+  --color-bg-modal: #0f2d0f;
+  --color-bg-paid: #1a2e1a;
+  --color-bg-summary: rgb(17, 51, 33);
+  
+  /* === ACCENT COLORS (GREENS) === */
+  --color-accent: #8cff9a;
+  --color-accent-strong: #00ff66;
+  --color-accent-mid: #4cff6a;
+  --color-accent-paid: #6aff6a;
+  --color-accent-income: #aaffb8;
+  --color-accent-summary: #00cc55;
+  --color-pipboy-theme: #baffc9;
+  
+  /* === CYAN ACCENT === */
+  --color-cyan: #00ffea;
+  --color-cyan-glow: #00ffea99;
+  --color-cyan-light: #00ffea22;
+  --color-cyan-mid: #00ffea44;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #6aff6a66;
+  --color-accent-mid-light: #4cff6a22;
+  --color-accent-mid-glow: #4cff6a44;
+  --color-box-shadow: #00ffea44;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(76, 255, 106, 0.15);
+  --color-hover-bg-strong: rgba(76, 255, 106, 0.2);
+  --color-bg-accordion-btn: #00ffea22;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-vignette: rgba(0, 0, 0, 0.4);
+  --color-scanline: rgba(140, 255, 154, 0.05);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ff5555;
+  --color-health-mid: #c8ff4c;
+  --color-health-low: #ff6a4c;
+  --color-neon: #39ff14;
+  
+  /* === UTILITY === */
+  --color-white: #fff;
+  
+  /* === TYPOGRAPHY === */
+  --font-primary: "VT323", monospace;
+  --font-heading: "VT323", monospace;
+  --font-size-base: 18px;
+  --logo-font-size: 64px;
+  --letter-spacing: 1px;
+  
+  /* === BORDERS & SHAPES === */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-width: 2px;
+  --border-width-thick: 3px;
+  --border-style: solid;
+  
+  /* === BUTTON STYLES === */
+  --btn-padding: 14px 24px;
+  --btn-font-size: 22px;
+  --btn-transform: none;
+  --btn-text-transform: none;
+  
+  /* === LOCK ICON STYLES === */
+  --lock-icon-size: 22px;
+  --lock-icon-top: 0.25em;
+  --lock-icon-right: 0.25em;
+  
+  /* === ACCORDION & LIST FONT SIZES === */
+  --accordion-main-font-size: 28px;
+  --accordion-cat-font-size: 22px;
+  --subcat-total-font-size: 24px;
+  --list-entry-font-size: 22px;
+  --input-font-size: 22px;
+  --edit-font-size: 22px;
+  --total-font-size: 22px;
+}
+
+/* =============================================
+   THEME: WINTER WONDERLAND
+   Icy blues, frosty whites, snowfall vibes
+   Usage: Add data-theme="winter" to <body> or .pipboy-theme
+   ============================================= */
+[data-theme="winter"] {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #0a1420;
+  --color-bg-gradient-secondary: #1a2a3a;
+  --color-bg-panel: rgba(10, 20, 32, 0.7);
+  --color-bg-panel-strong: rgba(10, 20, 32, 0.85);
+  --color-bg-panel-light: rgba(10, 20, 32, 0.5);
+  --color-bg-panel-medium: rgba(10, 20, 32, 0.6);
+  --color-bg-panel-medium-strong: rgba(10, 20, 32, 0.65);
+  --color-bg-panel-extra-strong: rgba(10, 20, 32, 0.95);
+  --color-bg-panel-80: rgba(10, 20, 32, 0.8);
+  --color-bg-panel-30: rgba(10, 20, 32, 0.3);
+  --color-bg-modal: #0f1a2d;
+  --color-bg-paid: #1a2a3a;
+  --color-bg-summary: rgb(17, 33, 51);
+  
+  /* === ACCENT COLORS (ICY BLUES) === */
+  --color-accent: #a0d8ef;
+  --color-accent-strong: #00bfff;
+  --color-accent-mid: #6ec6ff;
+  --color-accent-paid: #80dfff;
+  --color-accent-income: #c0e8ff;
+  --color-accent-summary: #5cb8e6;
+  --color-pipboy-theme: #d0f0ff;
+  
+  /* === FROST/SILVER ACCENT (replaces cyan) === */
+  --color-cyan: #e0f4ff;
+  --color-cyan-glow: #e0f4ff99;
+  --color-cyan-light: #e0f4ff22;
+  --color-cyan-mid: #e0f4ff44;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #80dfff66;
+  --color-accent-mid-light: #6ec6ff22;
+  --color-accent-mid-glow: #6ec6ff44;
+  --color-box-shadow: #a0d8ef44;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(110, 198, 255, 0.15);
+  --color-hover-bg-strong: rgba(110, 198, 255, 0.2);
+  --color-bg-accordion-btn: #e0f4ff22;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(0, 10, 20, 0.75);
+  --color-vignette: rgba(0, 10, 30, 0.4);
+  --color-scanline: rgba(160, 216, 239, 0.05);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ff6b6b;
+  --color-health-mid: #ffe066;
+  --color-health-low: #ff8c66;
+  --color-neon: #00e5ff;
+  
+  /* === UTILITY === */
+  --color-white: #fff;
+  
+  /* === TYPOGRAPHY === */
+  --font-primary: "Google Sans", "Roboto", "Segoe UI", sans-serif;
+  /* === --font-heading: "Google Sans", "Product Sans", sans-serif;=== */
+  /* === --font-primary: "Quicksand", "Segoe UI", sans-serif;=== */
+  --font-heading: "Fredoka One", "Quicksand", sans-serif;
+  --font-size-base: 20px;
+  --logo-font-size: 48px;
+  --letter-spacing: 0.5px;
+
+  /* === LOCK ICON STYLES === */
+  --lock-icon-size: 24px;
+  --lock-icon-top: 0.5em;
+  --lock-icon-right: 1em;
+  
+  /* === BORDERS & SHAPES (soft, rounded) === */
+  --border-radius-sm: 12px;
+  --border-radius-md: 18px;
+  --border-radius-lg: 24px;
+  --border-width: 2px;
+  --border-width-thick: 3px;
+  --border-style: solid;
+  
+  /* === BUTTON STYLES === */
+  --btn-padding: 12px 28px;
+  --btn-font-size: 20px;
+  --btn-transform: none;
+  --btn-text-transform: none;
+
+  /* === ACCORDION & LIST FONT SIZES === */
+  --accordion-main-font-size: 22px;  /* Main category accordion buttons */
+  --accordion-cat-font-size: 22px;   /* Sub-category accordion buttons */
+  --subcat-total-font-size: 18px;
+  --edit-font-size: 16px;
+  /* --list-entry-font-size-spendings: 18px; === */
+  --list-entry-font-size: 22px;      /* List entries */
+  --input-font-size: 18px;           /* Input fields */
+  --total-font-size: 22px;           /* Totals display */
+}
+
+/* =============================================
+   THEME: STRANGER THINGS
+   Dark 80s vibes, Christmas lights, Upside Down
+   Usage: Add data-theme="stranger" to <body> or .pipboy-theme
+   ============================================= */
+[data-theme="stranger"] {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #0d0a0a;
+  --color-bg-gradient-secondary: #1a0f0f;
+  --color-bg-panel: rgba(13, 10, 10, 0.7);
+  --color-bg-panel-strong: rgba(13, 10, 10, 0.85);
+  --color-bg-panel-light: rgba(13, 10, 10, 0.5);
+  --color-bg-panel-medium: rgba(13, 10, 10, 0.6);
+  --color-bg-panel-medium-strong: rgba(13, 10, 10, 0.65);
+  --color-bg-panel-extra-strong: rgba(13, 10, 10, 0.95);
+  --color-bg-panel-80: rgba(13, 10, 10, 0.8);
+  --color-bg-panel-30: rgba(13, 10, 10, 0.3);
+  --color-bg-modal: #150c0c;
+  --color-bg-paid: #1a1212;
+  --color-bg-summary: rgb(30, 15, 15);
+  
+  /* === ACCENT COLORS (REDS & WARM) === */
+  --color-accent: #ff4444;
+  --color-accent-strong: #ff0000;
+  --color-accent-mid: #cc3333;
+  --color-accent-paid: #ff6b6b;
+  --color-accent-income: #ffaa88;
+  --color-accent-summary: #e63939;
+  --color-pipboy-theme: #ff7777;
+  
+  /* === CHRISTMAS LIGHT ACCENT (warm amber/orange) === */
+  --color-cyan: #ffaa00;
+  --color-cyan-glow: #ffaa0099;
+  --color-cyan-light: #ffaa0022;
+  --color-cyan-mid: #ffaa0044;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #ff6b6b66;
+  --color-accent-mid-light: #cc333322;
+  --color-accent-mid-glow: #cc333344;
+  --color-box-shadow: #ff444444;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(255, 68, 68, 0.15);
+  --color-hover-bg-strong: rgba(255, 68, 68, 0.2);
+  --color-bg-accordion-btn: #ffaa0022;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(10, 0, 0, 0.8);
+  --color-vignette: rgba(20, 0, 0, 0.5);
+  --color-scanline: rgba(255, 68, 68, 0.04);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ff3333;
+  --color-health-mid: #ffcc44;
+  --color-health-low: #ff6644;
+  --color-neon: #ff0044;
+  
+  /* === UTILITY === */
+  --color-white: #fff;
+  
+  /* === TYPOGRAPHY (80s retro) === */
+  --font-primary: "VT323", "Courier New", monospace;
+  --font-heading: "VT323", monospace;
+  --font-size-base: 18px;
+  --letter-spacing: 1px;
+  
+  /* === BORDERS & SHAPES (sharp, retro) === */
+  --border-radius-sm: 0px;
+  --border-radius-md: 0px;
+  --border-radius-lg: 0px;
+  --border-width: 3px;
+  --border-width-thick: 4px;
+  --border-style: solid;
+  
+  /* === BUTTON STYLES === */
+  --btn-padding: 14px 24px;
+  --btn-font-size: 22px;
+  --btn-transform: skewX(-2deg);
+  --btn-text-transform: uppercase;
+}
+
+/* =============================================
+   THEME: HALLOWEEN
+   Spooky orange & purple, jack-o-lantern glow
+   Usage: Add data-theme="halloween" to <body> or .pipboy-theme
+   ============================================= */
+[data-theme="halloween"] {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #0a0510;
+  --color-bg-gradient-secondary: #1a0f20;
+  --color-bg-panel: rgba(10, 5, 16, 0.7);
+  --color-bg-panel-strong: rgba(10, 5, 16, 0.85);
+  --color-bg-panel-light: rgba(10, 5, 16, 0.5);
+  --color-bg-panel-medium: rgba(10, 5, 16, 0.6);
+  --color-bg-panel-medium-strong: rgba(10, 5, 16, 0.65);
+  --color-bg-panel-extra-strong: rgba(10, 5, 16, 0.95);
+  --color-bg-panel-80: rgba(10, 5, 16, 0.8);
+  --color-bg-panel-30: rgba(10, 5, 16, 0.3);
+  --color-bg-modal: #120818;
+  --color-bg-paid: #1a1020;
+  --color-bg-summary: rgb(25, 12, 35);
+  
+  /* === ACCENT COLORS (PUMPKIN ORANGE) === */
+  --color-accent: #ff9933;
+  --color-accent-strong: #ff6600;
+  --color-accent-mid: #e67300;
+  --color-accent-paid: #ffaa44;
+  --color-accent-income: #ffcc77;
+  --color-accent-summary: #ff8800;
+  --color-pipboy-theme: #ffbb55;
+  
+  /* === PURPLE/WITCH ACCENT === */
+  --color-cyan: #9933ff;
+  --color-cyan-glow: #9933ff99;
+  --color-cyan-light: #9933ff22;
+  --color-cyan-mid: #9933ff44;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #ffaa4466;
+  --color-accent-mid-light: #e6730022;
+  --color-accent-mid-glow: #e6730044;
+  --color-box-shadow: #9933ff44;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(255, 153, 51, 0.15);
+  --color-hover-bg-strong: rgba(255, 153, 51, 0.2);
+  --color-bg-accordion-btn: #9933ff22;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(10, 5, 16, 0.8);
+  --color-vignette: rgba(15, 5, 20, 0.5);
+  --color-scanline: rgba(255, 153, 51, 0.04);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ff4444;
+  --color-health-mid: #ffcc00;
+  --color-health-low: #ff5500;
+  --color-neon: #ff6600;
+  
+  /* === UTILITY === */
+  --color-white: #fff;
+  
+  /* === TYPOGRAPHY (spooky) === */
+  --font-primary: "VT323", "Courier New", monospace;
+  --font-heading: "VT323", monospace;
+  --font-size-base: 18px;
+  --letter-spacing: 1px;
+  
+  /* === BORDERS & SHAPES (jagged, organic) === */
+  --border-radius-sm: 8px 2px 8px 2px;
+  --border-radius-md: 12px 4px 12px 4px;
+  --border-radius-lg: 16px 6px 16px 6px;
+  --border-width: 2px;
+  --border-width-thick: 3px;
+  --border-style: dashed;
+  
+  /* === BUTTON STYLES === */
+  --btn-padding: 14px 22px;
+  --btn-font-size: 18px;
+  --btn-transform: rotate(-1deg);
+  --btn-text-transform: none;
+}
+
+/* =============================================
+   THEME: GOOGLE TECH
+   Clean Material Design, Google colors
+   Usage: Add data-theme="google" to <body> or .pipboy-theme
+   ============================================= */
+[data-theme="google"] {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #202124;
+  --color-bg-gradient-secondary: #303134;
+  --color-bg-panel: rgba(32, 33, 36, 0.7);
+  --color-bg-panel-strong: rgba(32, 33, 36, 0.85);
+  --color-bg-panel-light: rgba(32, 33, 36, 0.5);
+  --color-bg-panel-medium: rgba(32, 33, 36, 0.6);
+  --color-bg-panel-medium-strong: rgba(32, 33, 36, 0.65);
+  --color-bg-panel-extra-strong: rgba(32, 33, 36, 0.95);
+  --color-bg-panel-80: rgba(32, 33, 36, 0.8);
+  --color-bg-panel-30: rgba(32, 33, 36, 0.3);
+  --color-bg-modal: #292a2d;
+  --color-bg-paid: #2d3436;
+  --color-bg-summary: rgb(40, 42, 46);
+  
+  /* === ACCENT COLORS (GOOGLE BLUE) === */
+  --color-accent: #8ab4f8;
+  --color-accent-strong: #4285f4;
+  --color-accent-mid: #5e97f6;
+  --color-accent-paid: #34a853;
+  --color-accent-income: #81c995;
+  --color-accent-summary: #669df6;
+  --color-pipboy-theme: #aecbfa;
+  
+  /* === GOOGLE RED/YELLOW ACCENT === */
+  --color-cyan: #fbbc04;
+  --color-cyan-glow: #fbbc0499;
+  --color-cyan-light: #fbbc0422;
+  --color-cyan-mid: #fbbc0444;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #34a85366;
+  --color-accent-mid-light: #5e97f622;
+  --color-accent-mid-glow: #5e97f644;
+  --color-box-shadow: #4285f444;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(138, 180, 248, 0.15);
+  --color-hover-bg-strong: rgba(138, 180, 248, 0.2);
+  --color-bg-accordion-btn: #fbbc0422;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-vignette: rgba(0, 0, 0, 0.3);
+  --color-scanline: rgba(138, 180, 248, 0.03);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ea4335;
+  --color-health-mid: #fbbc04;
+  --color-health-low: #ea4335;
+  --color-neon: #4285f4;
+  
+  /* === UTILITY === */
+  --color-white: #e8eaed;
+  
+  /* === TYPOGRAPHY (Google Sans style) === */
+  --font-primary: "Google Sans", "Roboto", "Segoe UI", sans-serif;
+  --font-heading: "Google Sans", "Product Sans", sans-serif;
+  --font-size-base: 16px;
+  --letter-spacing: 0.25px;
+  
+  /* === BORDERS & SHAPES (Material Design) === */
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 28px;
+  --border-width: 1px;
+  --border-width-thick: 2px;
+  --border-style: solid;
+  
+  /* === BUTTON STYLES (Material pill buttons) === */
+  --btn-padding: 10px 24px;
+  --btn-font-size: 14px;
+  --btn-transform: none;
+  --btn-text-transform: none;
+}
+
+/* =============================================
+   THEME: SYNTHWAVE
+   Retro 80s neon, purple/pink/cyan gradients
+   Usage: Add data-theme="synthwave" to <body> or .pipboy-theme
+   ============================================= */
+[data-theme="synthwave"] {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #1a0a2e;
+  --color-bg-gradient-secondary: #2d1b4e;
+  --color-bg-panel: rgba(26, 10, 46, 0.7);
+  --color-bg-panel-strong: rgba(26, 10, 46, 0.85);
+  --color-bg-panel-light: rgba(26, 10, 46, 0.5);
+  --color-bg-panel-medium: rgba(26, 10, 46, 0.6);
+  --color-bg-panel-medium-strong: rgba(26, 10, 46, 0.65);
+  --color-bg-panel-extra-strong: rgba(26, 10, 46, 0.95);
+  --color-bg-panel-80: rgba(26, 10, 46, 0.8);
+  --color-bg-panel-30: rgba(26, 10, 46, 0.3);
+  --color-bg-modal: #1f0f3a;
+  --color-bg-paid: #2a1545;
+  --color-bg-summary: rgb(35, 15, 60);
+  
+  /* === ACCENT COLORS (HOT PINK) === */
+  --color-accent: #ff6ec7;
+  --color-accent-strong: #ff2a9d;
+  --color-accent-mid: #e84393;
+  --color-accent-paid: #00f5d4;
+  --color-accent-income: #7fffd4;
+  --color-accent-summary: #ff69b4;
+  --color-pipboy-theme: #ffb3de;
+  
+  /* === CYAN NEON ACCENT === */
+  --color-cyan: #00f5ff;
+  --color-cyan-glow: #00f5ff99;
+  --color-cyan-light: #00f5ff22;
+  --color-cyan-mid: #00f5ff44;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #00f5d466;
+  --color-accent-mid-light: #e8439322;
+  --color-accent-mid-glow: #e8439344;
+  --color-box-shadow: #ff6ec744;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(255, 110, 199, 0.15);
+  --color-hover-bg-strong: rgba(255, 110, 199, 0.25);
+  --color-bg-accordion-btn: #00f5ff22;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(26, 10, 46, 0.85);
+  --color-vignette: rgba(20, 5, 40, 0.5);
+  --color-scanline: rgba(255, 110, 199, 0.04);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ff4757;
+  --color-health-mid: #feca57;
+  --color-health-low: #ff6b6b;
+  --color-neon: #ff2a9d;
+  
+  /* === UTILITY === */
+  --color-white: #fff;
+  
+  /* === TYPOGRAPHY === */
+  --font-primary: "VT323", monospace;
+  --font-heading: "VT323", monospace;
+  --font-size-base: 18px;
+  --letter-spacing: 1px;
+  
+  /* === BORDERS & SHAPES === */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-width: 2px;
+  --border-width-thick: 3px;
+  --border-style: solid;
+  
+  /* === BUTTON STYLES === */
+  --btn-padding: 14px 24px;
+  --btn-font-size: 22px;
+  --btn-transform: none;
+  --btn-text-transform: none;
+}
+
+/* =============================================
+   THEME: OCEAN
+   Deep sea teal, navy, calming aquamarine
+   Usage: Add data-theme="ocean" to <body> or .pipboy-theme
+   ============================================= */
+[data-theme="ocean"] {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #0a192f;
+  --color-bg-gradient-secondary: #112240;
+  --color-bg-panel: rgba(10, 25, 47, 0.7);
+  --color-bg-panel-strong: rgba(10, 25, 47, 0.85);
+  --color-bg-panel-light: rgba(10, 25, 47, 0.5);
+  --color-bg-panel-medium: rgba(10, 25, 47, 0.6);
+  --color-bg-panel-medium-strong: rgba(10, 25, 47, 0.65);
+  --color-bg-panel-extra-strong: rgba(10, 25, 47, 0.95);
+  --color-bg-panel-80: rgba(10, 25, 47, 0.8);
+  --color-bg-panel-30: rgba(10, 25, 47, 0.3);
+  --color-bg-modal: #0d1f3c;
+  --color-bg-paid: #0f2942;
+  --color-bg-summary: rgb(15, 35, 60);
+  
+  /* === ACCENT COLORS (TEAL/AQUA) === */
+  --color-accent: #64ffda;
+  --color-accent-strong: #00d9ff;
+  --color-accent-mid: #4ecdc4;
+  --color-accent-paid: #00ff88;
+  --color-accent-income: #7fffd4;
+  --color-accent-summary: #20b2aa;
+  --color-pipboy-theme: #a8edea;
+  
+  /* === SEAFOAM/CORAL ACCENT === */
+  --color-cyan: #ff6b9d;
+  --color-cyan-glow: #ff6b9d99;
+  --color-cyan-light: #ff6b9d22;
+  --color-cyan-mid: #ff6b9d44;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #00ff8866;
+  --color-accent-mid-light: #4ecdc422;
+  --color-accent-mid-glow: #4ecdc444;
+  --color-box-shadow: #64ffda44;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(100, 255, 218, 0.1);
+  --color-hover-bg-strong: rgba(100, 255, 218, 0.15);
+  --color-bg-accordion-btn: #ff6b9d22;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(10, 25, 47, 0.85);
+  --color-vignette: rgba(5, 15, 35, 0.4);
+  --color-scanline: rgba(100, 255, 218, 0.03);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ff6b6b;
+  --color-health-mid: #ffd93d;
+  --color-health-low: #ff6b6b;
+  --color-neon: #00d9ff;
+  
+  /* === UTILITY === */
+  --color-white: #e6f1ff;
+  
+  /* === TYPOGRAPHY === */
+  --font-primary: "VT323", monospace;
+  --font-heading: "VT323", monospace;
+  --font-size-base: 18px;
+  --letter-spacing: 1px;
+  
+  /* === BORDERS & SHAPES === */
+  --border-radius-sm: 6px;
+  --border-radius-md: 10px;
+  --border-radius-lg: 14px;
+  --border-width: 2px;
+  --border-width-thick: 3px;
+  --border-style: solid;
+  
+  /* === BUTTON STYLES === */
+  --btn-padding: 14px 24px;
+  --btn-font-size: 22px;
+  --btn-transform: none;
+  --btn-text-transform: none;
+}
+
+/* =============================================
+   THEME: SUNSET
+   Warm coral, orange, golden hour vibes
+   Usage: Add data-theme="sunset" to <body> or .pipboy-theme
+   ============================================= */
+[data-theme="sunset"] {
+  /* === BACKGROUND COLORS === */
+  --color-bg-main: #1a0a0a;
+  --color-bg-gradient-secondary: #2d1515;
+  --color-bg-panel: rgba(26, 10, 10, 0.7);
+  --color-bg-panel-strong: rgba(26, 10, 10, 0.85);
+  --color-bg-panel-light: rgba(26, 10, 10, 0.5);
+  --color-bg-panel-medium: rgba(26, 10, 10, 0.6);
+  --color-bg-panel-medium-strong: rgba(26, 10, 10, 0.65);
+  --color-bg-panel-extra-strong: rgba(26, 10, 10, 0.95);
+  --color-bg-panel-80: rgba(26, 10, 10, 0.8);
+  --color-bg-panel-30: rgba(26, 10, 10, 0.3);
+  --color-bg-modal: #1f0f0f;
+  --color-bg-paid: #2a1818;
+  --color-bg-summary: rgb(35, 18, 18);
+  
+  /* === ACCENT COLORS (CORAL/ORANGE) === */
+  --color-accent: #ff7f50;
+  --color-accent-strong: #ff6347;
+  --color-accent-mid: #ff8c69;
+  --color-accent-paid: #ffd700;
+  --color-accent-income: #ffe066;
+  --color-accent-summary: #ff7043;
+  --color-pipboy-theme: #ffb89a;
+  
+  /* === GOLDEN/YELLOW ACCENT === */
+  --color-cyan: #ffc857;
+  --color-cyan-glow: #ffc85799;
+  --color-cyan-light: #ffc85722;
+  --color-cyan-mid: #ffc85744;
+  
+  /* === GLOW & SHADOW COLORS === */
+  --color-paid-glow: #ffd70066;
+  --color-accent-mid-light: #ff8c6922;
+  --color-accent-mid-glow: #ff8c6944;
+  --color-box-shadow: #ff7f5044;
+  
+  /* === HOVER & INTERACTIVE === */
+  --color-hover-bg: rgba(255, 127, 80, 0.15);
+  --color-hover-bg-strong: rgba(255, 127, 80, 0.2);
+  --color-bg-accordion-btn: #ffc85722;
+  
+  /* === OVERLAY & EFFECTS === */
+  --color-overlay: rgba(26, 10, 10, 0.85);
+  --color-vignette: rgba(20, 5, 5, 0.4);
+  --color-scanline: rgba(255, 127, 80, 0.04);
+  
+  /* === STATUS COLORS === */
+  --color-error: #ff4757;
+  --color-health-mid: #ffd700;
+  --color-health-low: #ff4757;
+  --color-neon: #ff6347;
+  
+  /* === UTILITY === */
+  --color-white: #fff5ee;
+  
+  /* === TYPOGRAPHY === */
+  --font-primary: "VT323", monospace;
+  --font-heading: "VT323", monospace;
+  --font-size-base: 18px;
+  --letter-spacing: 1px;
+  
+  /* === BORDERS & SHAPES === */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-width: 2px;
+  --border-width-thick: 3px;
+  --border-style: solid;
+  
+  /* === BUTTON STYLES === */
+  --btn-padding: 14px 24px;
+  --btn-font-size: 22px;
+  --btn-transform: none;
+  --btn-text-transform: none;
+}
+
+/* =============================================
+   THEME-SPECIFIC ELEMENT OVERRIDES
+   ============================================= */
+
+/* === WINTER: Soft frosted glass buttons === */
+[data-theme="winter"] button:not(.budui-lock-btn),
+[data-theme="winter"] .budui-action-btn,
+[data-theme="winter"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-md) !important;
+  backdrop-filter: blur(8px);
+  border-style: var(--border-style) !important;
+  box-shadow: 0 4px 15px rgba(110, 198, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  text-shadow: none !important;
+}
+[data-theme="winter"] input,
+[data-theme="winter"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-md) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* === STRANGER THINGS: Retro blocky 80s style === */
+[data-theme="stranger"] button:not(.budui-lock-btn),
+[data-theme="stranger"] .budui-action-btn,
+[data-theme="stranger"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-sm) !important;
+  border-width: var(--border-width-thick) !important;
+  transform: var(--btn-transform);
+  text-transform: var(--btn-text-transform) !important;
+  box-shadow: 4px 4px 0 var(--color-accent-mid), 0 0 20px var(--color-accent-mid-glow);
+  letter-spacing: var(--letter-spacing) !important;
+}
+[data-theme="stranger"] button:not(.budui-lock-btn):hover,
+[data-theme="stranger"] .budui-action-btn:hover {
+  box-shadow: 6px 6px 0 var(--color-accent), 0 0 30px var(--color-accent-mid-glow);
+  transform: var(--btn-transform) translate(-2px, -2px);
+}
+[data-theme="stranger"] input,
+[data-theme="stranger"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-sm) !important;
+  border-width: var(--border-width-thick) !important;
+  box-shadow: 3px 3px 0 var(--color-accent-mid);
+}
+
+/* === HALLOWEEN: Spooky dashed jagged edges === */
+[data-theme="halloween"] button:not(.budui-lock-btn),
+[data-theme="halloween"] .budui-action-btn,
+[data-theme="halloween"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-md) !important;
+  border-style: var(--border-style) !important;
+  transform: var(--btn-transform);
+  box-shadow: 0 0 15px var(--color-cyan-glow), 0 0 30px var(--color-accent-mid-glow);
+  animation: halloweenFlicker 3s infinite;
+}
+@keyframes halloweenFlicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.95; }
+  52% { opacity: 0.85; }
+  54% { opacity: 1; }
+}
+[data-theme="halloween"] input,
+[data-theme="halloween"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-sm) !important;
+  border-style: var(--border-style) !important;
+}
+
+/* === GOOGLE: Clean Material Design buttons === */
+[data-theme="google"] button:not(.budui-lock-btn),
+[data-theme="google"] .budui-action-btn,
+[data-theme="google"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-lg) !important;
+  border-width: var(--border-width) !important;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.15);
+  text-shadow: none !important;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+[data-theme="google"] button:not(.budui-lock-btn):hover,
+[data-theme="google"] .budui-action-btn:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 8px 16px rgba(0,0,0,0.2);
+}
+[data-theme="google"] input,
+[data-theme="google"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-sm) !important;
+  border-width: var(--border-width) !important;
+  box-shadow: none;
+  border-bottom: 2px solid var(--color-accent-mid);
+}
+[data-theme="google"] input:focus,
+[data-theme="google"] select:focus {
+  border-bottom-color: var(--color-accent-strong);
+  box-shadow: 0 1px 0 var(--color-accent-strong);
+}
+
+/* === SYNTHWAVE: Neon glow pink/cyan === */
+[data-theme="synthwave"] button:not(.budui-lock-btn),
+[data-theme="synthwave"] .budui-action-btn,
+[data-theme="synthwave"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-sm) !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 10px var(--color-accent-mid-glow), 0 0 20px var(--color-cyan-light);
+  text-shadow: 0 0 8px var(--color-accent) !important;
+}
+[data-theme="synthwave"] button:not(.budui-lock-btn):hover,
+[data-theme="synthwave"] .budui-action-btn:hover {
+  box-shadow: 0 0 15px var(--color-accent), 0 0 30px var(--color-cyan-glow);
+  border-color: var(--color-cyan) !important;
+}
+[data-theme="synthwave"] .budui-accordion-btn.main-cat {
+  background: linear-gradient(135deg, var(--color-bg-main) 0%, #2d1b4e 100%);
+  border: 2px solid var(--color-accent) !important;
+  box-shadow: 0 0 15px var(--color-accent-mid-glow), inset 0 0 30px rgba(255, 110, 199, 0.1);
+}
+[data-theme="synthwave"] input,
+[data-theme="synthwave"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-sm) !important;
+  border-color: var(--color-cyan) !important;
+  box-shadow: 0 0 6px var(--color-cyan-light);
+}
+[data-theme="synthwave"] input:focus,
+[data-theme="synthwave"] select:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 12px var(--color-accent-mid-glow);
+}
+
+/* === OCEAN: Deep sea calm, teal glow === */
+[data-theme="ocean"] button:not(.budui-lock-btn),
+[data-theme="ocean"] .budui-action-btn,
+[data-theme="ocean"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-md) !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 12px var(--color-accent-mid-glow), 0 4px 20px rgba(100, 255, 218, 0.15);
+  text-shadow: 0 0 6px var(--color-accent) !important;
+}
+[data-theme="ocean"] button:not(.budui-lock-btn):hover,
+[data-theme="ocean"] .budui-action-btn:hover {
+  box-shadow: 0 0 20px var(--color-accent), 0 6px 25px rgba(100, 255, 218, 0.25);
+  border-color: var(--color-cyan) !important;
+}
+[data-theme="ocean"] .budui-accordion-btn.main-cat {
+  background: linear-gradient(135deg, var(--color-bg-main) 0%, #112d4e 100%);
+  border: 2px solid var(--color-accent) !important;
+  box-shadow: 0 0 15px var(--color-accent-mid-glow), inset 0 0 30px rgba(100, 255, 218, 0.05);
+}
+[data-theme="ocean"] input,
+[data-theme="ocean"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-md) !important;
+  border-color: var(--color-accent-mid) !important;
+  box-shadow: 0 0 6px var(--color-accent-mid-light);
+}
+[data-theme="ocean"] input:focus,
+[data-theme="ocean"] select:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 12px var(--color-accent-mid-glow);
+}
+
+/* === SUNSET: Warm coral/orange glow === */
+[data-theme="sunset"] button:not(.budui-lock-btn),
+[data-theme="sunset"] .budui-action-btn,
+[data-theme="sunset"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-md) !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 12px var(--color-accent-mid-glow), 0 4px 20px rgba(255, 127, 80, 0.2);
+  text-shadow: 0 0 6px var(--color-accent) !important;
+}
+[data-theme="sunset"] button:not(.budui-lock-btn):hover,
+[data-theme="sunset"] .budui-action-btn:hover {
+  box-shadow: 0 0 20px var(--color-accent), 0 6px 25px rgba(255, 127, 80, 0.3);
+  border-color: var(--color-cyan) !important;
+}
+[data-theme="sunset"] .budui-accordion-btn.main-cat {
+  background: linear-gradient(135deg, var(--color-bg-main) 0%, #3d1f1f 100%);
+  border: 2px solid var(--color-accent) !important;
+  box-shadow: 0 0 15px var(--color-accent-mid-glow), inset 0 0 30px rgba(255, 127, 80, 0.08);
+}
+[data-theme="sunset"] input,
+[data-theme="sunset"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-md) !important;
+  border-color: var(--color-accent-mid) !important;
+  box-shadow: 0 0 6px var(--color-accent-mid-light);
+}
+[data-theme="sunset"] input:focus,
+[data-theme="sunset"] select:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 12px var(--color-accent-mid-glow);
+}
+
+/* =============================================
+   GLOBAL: Lock & Help buttons NEVER have borders
+   ============================================= */
+.budui-lock-btn,
+.budui-lock-btn:focus,
+.budui-lock-btn:active,
+.budui-lock-btn:hover,
+#helpReticleBtn,
+#helpReticleBtn:focus,
+#helpReticleBtn:active,
+#helpReticleBtn:hover,
+[data-theme] .budui-lock-btn,
+[data-theme] .budui-lock-btn:focus,
+[data-theme] .budui-lock-btn:active,
+[data-theme] .budui-lock-btn:hover,
+[data-theme] #helpReticleBtn,
+[data-theme] #helpReticleBtn:focus,
+[data-theme] #helpReticleBtn:active,
+[data-theme] #helpReticleBtn:hover,
+[data-theme="winter"] .budui-lock-btn,
+[data-theme="stranger"] .budui-lock-btn,
+[data-theme="halloween"] .budui-lock-btn,
+[data-theme="google"] .budui-lock-btn,
+[data-theme="synthwave"] .budui-lock-btn,
+[data-theme="ocean"] .budui-lock-btn,
+[data-theme="sunset"] .budui-lock-btn {
+  border: none !important;
+  box-shadow: none !important;
+  background: none !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+
+
+
+
+.budui-accordion-btn.main-cat.open {
+  background: var(--color-cyan-light);
+  color: var(--color-accent-strong);
+  box-shadow: 0 0 18px var(--color-accent-strong);
+}
+.budui-accordion-btn.cat.open {
+  background: var(--color-cyan-light);
+  color: var(--color-accent-strong);
+  box-shadow: 0 0 14px var(--color-accent-strong);
+}
+
+
+.budui-edit-amount {
+    font-size: var(--edit-font-size, 22px) !important;
+    text-shadow: none !important;
+  }
+.budui-edit-amount .budui-total {
+    font-size: var(--edit-font-size, 22px) !important;
+    text-shadow: none !important;
+  }
+.budui-edit-amount .budui-half {
+    font-size: var(--edit-font-size, 22px) !important;
+    text-shadow: none !important;
+  }
+/* Forcefully override global text-shadow for half edit fields */
+.pipboy-theme input.budui-edit-amount.budui-half,
+.pipboy-theme .budui-edit-amount.budui-half {
+  text-shadow: none !important;
+  filter: none !important;
+}
+  /* Remove text-shadow for paid/half edit fields to reduce blur */
+  .budui-edit-amount.budui-half.budui-paid,
+  .budui-edit-amount.budui-half.budui-paid:read-only,
+  .budui-edit-amount.budui-half.budui-paid[readonly] {
+    text-shadow: none !important;
+    color: var(--color-accent-strong) !important;
+  }
+  
+
+/* Force lock buttons to have no border, even if inherited */
+.budui-lock-btn, .budui-lock-btn:focus, .budui-lock-btn:active, .budui-lock-btn:hover {
+  border: none !important;
+  box-shadow: none !important;
+  background: none !important;
+}
+
+/* --- Modernized Pip-Boy Color Palette & Borders --- */
+body, .pipboy-theme {
+  background: linear-gradient(135deg, var(--color-bg-main) 60%, var(--color-bg-gradient-secondary) 100%);
+  color: var(--color-pipboy-theme);
+}
+
+.pipboy-theme {
+  box-shadow: 0 0 40px var(--color-cyan-mid) inset;
+  border-radius: 18px;
+  /* border: 3px solid var(--color-cyan); */
+}
+
+/* Panels & Cards */
+.pipboy-theme .panel,
+.pipboy-theme .card,
+.pipboy-theme .container {
+  border: 2px solid var(--color-cyan);
+  background: var(--color-bg-panel-strong);
+  box-shadow: 0 0 18px var(--color-cyan-glow);
+  border-radius: 12px;
+}
+
+/* Main category buttons (main-cat) */
+.budui-accordion-btn.main-cat {
+  border: 3px solid var(--color-cyan);
+  box-shadow: 0 0 12px var(--color-cyan);
+  font-size: var(--accordion-main-font-size, 28px);
+  background: linear-gradient(90deg, var(--color-bg-main) 60%, var(--color-bg-gradient-secondary) 100%);
+  color: var(--color-cyan);
+  text-shadow: 0 0 10px var(--color-cyan);
+  border-radius: 10px;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+.budui-accordion-btn.main-cat.open {
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+.budui-accordion-btn.main-cat:hover {
+  background: var(--color-cyan-light);
+  color: var(--color-accent-strong);
+  box-shadow: 0 0 18px var(--color-accent-strong);
+}
+/* Flagrant paid cue */
+.budui-paid {
+  background: linear-gradient(90deg, var(--color-accent-strong) 0%, var(--color-pipboy-theme) 100%) !important;
+  color: var(--color-bg-main) !important;
+  border: 2px solid var(--color-accent-strong) !important;
+  box-shadow: 0 0 10px 2px rgba(160, 216, 239, 0.5), 0 0 16px 3px rgba(160, 216, 239, 0.35);
+  font-weight: normal;
+    text-shadow: none !important;
+  animation: buduiPaidPulse 3s infinite alternate ease-in-out;
+}
+@keyframes buduiPaidPulse {
+  0% { box-shadow: 0 0 8px 1px rgba(160, 216, 239, 0.45), 0 0 12px 2px rgba(160, 216, 239, 0.3); }
+  100% { box-shadow: 0 0 12px 2px rgba(160, 216, 239, 0.55), 0 0 18px 3px rgba(160, 216, 239, 0.4); }
+}
+
+/* Spending entry line */
+.budui-list-entry {
+  border-top: 2px solid var(--color-paid-glow);
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: var(--list-entry-font-size, 22px);
+  color: var(--color-accent-strong);
+  background: var(--color-bg-panel);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Recurring/repeated spending entry - subtle static text glow */
+.pipboy-theme .budui-list-entry.recurring-entry,
+.pipboy-theme .budui-list-entry.recurring-entry span,
+.pipboy-theme .budui-list-item.recurring-entry,
+.pipboy-theme .budui-list-item.recurring-entry span {
+  color: var(--color-accent-strong) !important;
+  text-shadow: 0 0 6px var(--color-accent-strong), 0 0 2px var(--color-paid-glow) !important;
+}
+.budui-list-entry .budui-list-amount {
+  margin-left: 16px;
+  min-width: 90px;
+  text-align: right;
+  display: inline-block;
+}
+
+/* Sub-category buttons (cat) */
+.budui-accordion-btn.cat {
+  border: 2px solid var(--color-cyan);
+  box-shadow: 0 0 8px var(--color-cyan);
+  font-size: var(--accordion-cat-font-size, 22px);
+  background: var(--color-bg-panel-80);
+  color: var(--color-pipboy-theme);
+  text-shadow: 0 0 6px var(--color-cyan);
+  border-radius: 8px;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.budui-accordion-btn.cat:hover {
+  background: var(--color-cyan-light);
+  color: var(--color-accent-strong);
+  box-shadow: 0 0 14px var(--color-accent-strong);
+}
+
+/* Panels */
+.budui-accordion-panel {
+  background: var(--color-bg-panel);
+  border: 2px solid var(--color-cyan);
+  border-radius: 10px;
+  color: var(--color-pipboy-theme);
+  box-shadow: 0 0 10px var(--color-cyan);
+}
+
+/* Action Buttons */
+.budui-action-btn, .pipboy-theme button:not(.budui-lock-btn), button:not(.budui-lock-btn) {
+  background: linear-gradient(90deg, var(--color-bg-main) 60%, var(--color-bg-gradient-secondary) 100%);
+  color: var(--color-cyan);
+  border: 2px solid var(--color-cyan);
+  border-radius: 8px;
+  box-shadow: 0 0 8px var(--color-cyan);
+  font-size: var(--btn-font-size, 22px);
+  padding: 12px 0;
+  font-family: "VT323", monospace;
+  cursor: pointer;
+  text-shadow: 0 0 6px var(--color-cyan);
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.budui-action-btn:hover, .pipboy-theme button:not(.budui-lock-btn):hover, button:not(.budui-lock-btn):hover {
+  background: var(--color-cyan-light);
+  color: var(--color-accent-strong);
+  box-shadow: 0 0 16px var(--color-accent-strong);
+}
+
+/* Add Spending button - styled like paid box */
+#addSpendingBtn {
+  background: transparent;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-strong);
+  box-shadow: 0 0 10px 2px rgba(160, 216, 239, 0.5), 0 0 16px 3px rgba(160, 216, 239, 0.35);
+  text-shadow: none !important;
+  margin-top: 10px;
+  margin-bottom: 30px;
+  animation: addSpendingPulse 3s infinite alternate ease-in-out;
+}
+@keyframes addSpendingPulse {
+  0% { box-shadow: 0 0 8px 1px rgba(160, 216, 239, 0.45), 0 0 12px 2px rgba(160, 216, 239, 0.3); }
+  100% { box-shadow: 0 0 12px 2px rgba(160, 216, 239, 0.55), 0 0 18px 3px rgba(160, 216, 239, 0.4); }
+}
+#addSpendingBtn:hover {
+  background: var(--color-hover-bg);
+  box-shadow: 0 0 14px 3px rgba(160, 216, 239, 0.6), 0 0 20px 4px rgba(160, 216, 239, 0.45);
+  text-shadow: none !important;
+}
+
+/* Help button - Reticle style */
+#helpReticleBtn {
+  position: relative;
+  background: transparent;
+  color: var(--color-accent-strong);
+  border: none;
+  font-family: "VT323", monospace;
+  font-size: var(--btn-font-size, 22px);
+  padding: 10px 16px;
+  cursor: pointer;
+  text-shadow: 0 0 6px var(--color-accent-strong);
+  box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.3), 0 0 14px 4px rgba(160, 216, 239, 0.2);
+}
+#helpReticleBtn::before,
+#helpReticleBtn::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 2px;
+  background: var(--color-accent-strong);
+  box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.4);
+}
+#helpReticleBtn::before {
+  top: 2px;
+  left: 2px;
+  transform: rotate(45deg);
+}
+#helpReticleBtn::after {
+  top: 2px;
+  right: 2px;
+  transform: rotate(-45deg);
+}
+#helpReticleBtn span.reticle-bottom-left,
+#helpReticleBtn span.reticle-bottom-right {
+  position: absolute;
+  width: 12px;
+  height: 2px;
+  background: var(--color-accent-strong);
+  box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.4);
+}
+#helpReticleBtn span.reticle-bottom-left {
+  bottom: 2px;
+  left: 2px;
+  transform: rotate(-45deg);
+}
+#helpReticleBtn span.reticle-bottom-right {
+  bottom: 2px;
+  right: 2px;
+  transform: rotate(45deg);
+}
+#helpReticleBtn:hover {
+  color: var(--color-accent);
+  text-shadow: 0 0 10px var(--color-accent-strong);
+  box-shadow: 0 0 10px 3px rgba(160, 216, 239, 0.45), 0 0 18px 5px rgba(160, 216, 239, 0.3);
+}
+#helpReticleBtn:hover::before,
+#helpReticleBtn:hover::after,
+#helpReticleBtn:hover span.reticle-bottom-left,
+#helpReticleBtn:hover span.reticle-bottom-right {
+  background: var(--color-accent);
+  box-shadow: 0 0 10px 3px rgba(160, 216, 239, 0.5);
+}
+
+/* Inputs */
+.pipboy-theme input, .pipboy-theme select, input, select {
+  background: var(--color-bg-panel-strong);
+  border: 2px solid var(--color-cyan);
+  border-radius: 8px;
+  color: var(--color-pipboy-theme);
+  font-family: "VT323", monospace;
+  font-size: var(--input-font-size, 22px);
+  text-shadow: 0 0 4px var(--color-cyan);
+  box-shadow: 0 0 6px var(--color-cyan-mid);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.pipboy-theme input:focus, .pipboy-theme select:focus, input:focus, select:focus {
+  border-color: var(--color-accent-strong);
+  box-shadow: 0 0 12px var(--color-accent-strong);
+  outline: none;
+}
+
+/* Accent text */
+.budui-section-title, .budui-summary-label, .pip-title, .line strong, .history-title {
+  color: var(--color-cyan) !important;
+  text-shadow: 0 0 8px var(--color-cyan);
+}
+
+/* Totals and values */
+.budui-summary-value, .budui-list-total {
+  color: var(--color-accent-strong);
+  text-shadow: none;
+}
+
+/* Make spending total as big as entries */
+#spendingPanelTotal.budui-list-total {
+  font-size: var(--total-font-size, 22px);
+  font-weight: normal;
+  padding: 8px 0 0 0;
+  color: var(--color-accent-strong);
+  background: var(--color-bg-panel);
+  border-top: 2px solid var(--color-paid-glow);
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Unified lock button style */
+.budui-lock-btn {
+  position: absolute;
+  top: var(--lock-icon-top, 0.25em);
+  right: var(--lock-icon-right, 0.25em);
+  z-index: 2;
+  background: none !important;
+  border: none !important;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  font-size: var(--lock-icon-size, 22px);
+  line-height: 1;
+}
+
+/* Main category buttons (main-cat) */
+.budui-accordion-btn.main-cat {
+  border: 3px solid var(--color-accent-strong);
+  box-shadow: 0 0 8px var(--color-accent-mid);
+  font-size: var(--accordion-main-font-size, 28px);
+  background: var(--color-bg-panel-strong);
+  color: var(--color-accent-strong);
+  text-shadow: none;
+}
+
+/* Sub-category buttons (cat) */
+.budui-accordion-btn.cat {
+  border: 2px solid var(--color-accent-mid);
+  box-shadow: 0 0 8px var(--color-accent-mid);
+  font-size: var(--accordion-cat-font-size, 22px);
+  background: var(--color-bg-panel);
+  color: var(--color-accent);
+  text-shadow: none;
+}
+
+
+/* Modal edit row: Edit/Delete side by side, Cancel below */
+.budui-modal-edit-row {
+  display: block;
+  width: 100%;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+.budui-modal-edit-row .budui-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.budui-modal-cancel-btn {
+  display: block;
+  width: 100%;
+  font-size: var(--btn-font-size, 22px);
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
+  margin-top: 0;
+}
+
+
+/* Full-width cancel button for modal */
+.budui-modal-cancel-btn {
+  display: block;
+  width: 100%;
+  font-size: var(--btn-font-size, 22px);
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
+}
+
+
+.budui-paid {
+  box-shadow: 0 0 4px 1px var(--color-accent-paid), 0 0 8px 2px var(--color-paid-glow);
+  border-color: var(--color-accent-paid) !important;
+  background: var(--color-bg-paid) !important;
+  color: var(--color-accent-paid) !important;
+  transition: box-shadow 0.2s, border-color 0.2s, background 0.2s, color 0.2s;
+  text-shadow: none !important;
+}
+
+
+/* Modal entry info column layout */
+.budui-modal-entry-info {
+  position: relative;
+  top: -30px;
+  left: 0px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* Paid income entries look like totals */
+.budui-list-item.paid.income {
+  color: var(--color-accent-income);
+  text-shadow: none;
+  font-size: 19px;
+  font-weight: normal;
+  background: none;
+  filter: none;
+  letter-spacing: 0.5px;
+  opacity: 1;
+  text-decoration: none;
+}
+
+/* Glowing/bright paid entry */
+.budui-list-item.paid {
+  font-size: 19px;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+}
+
+.budui-list-item.paid * {
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+
+/* Modal for entry actions */
+.budui-modal {
+  position: absolute;
+  left: 0; right: 0;
+  min-height: 100vh;
+  background: var(--color-overlay);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20px;
+  z-index: 1000;
+}
+.budui-modal-content {
+  background: var(--color-bg-modal);
+  border: 2px solid var(--color-accent-mid);
+  box-shadow: 0 0 24px var(--color-accent-mid);
+  padding: 24px 36px;
+  border-radius: 16px;
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  font-size: 32px;
+  margin: 32px;
+}
+.budui-modal-btn-row {
+  display: flex;
+  width: 100%;
+  margin: 4px 0 0 0;
+  padding: 0;
+  font-size: 20px;
+  gap: 18px;
+}
+
+/* Remove extra margin below the last button row in the modal */
+.budui-modal-content > .budui-modal-btn-row:last-child {
+  margin-bottom: 0;
+}
+
+.budui-modal-close {
+  position: relative;
+  top: -25px;
+  left: 120px;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  border: none !important;
+}
+
+.budui-check-btn {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px 0;
+  font-size: 20px;
+  background: transparent;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  font-family: "VT323", monospace;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.budui-check-btn:hover {
+  background: var(--color-hover-bg);
+  box-shadow: 0 0 10px var(--color-accent-mid);
+}
+
+
+/* Left-align totals */
+#transactionTotal, .budui-list-total {
+  text-align: right !important;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+
+/* BUDGET UI LIST ITEMS & PAID BUTTONS */
+.budui-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-accent-mid-light);
+  font-size: 18px;
+}
+.budui-list-item:last-child {
+  border-bottom: none;
+}
+.budui-list-item.paid.recurrent {
+  text-decoration: line-through;
+}
+.budui-paid-btn {
+  background: transparent;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  padding: 4px 0;
+  min-width: 110px;
+  max-width: 120px;
+  text-align: center;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 6px var(--color-accent-mid);
+  text-shadow: none !important;
+}
+.budui-paid-btn:hover {
+  background: var(--color-hover-bg);
+  box-shadow: 0 0 10px var(--color-accent-mid);
+  text-shadow: none !important;
+}
+.budui-paid-label {
+  color: var(--color-accent-strong);
+  font-size: 16px;
+  margin-left: 10px;
+  text-shadow: none !important;
+}
+.budui-list-total {
+  text-align: left;
+  color: var(--color-accent);
+  font-size: 18px;
+  margin-top: 8px;
+  font-weight: normal;
+  text-shadow: none !important;
+}
+
+
+
+/* BUDGET UI WEEKLY BREAKDOWN */
+.budui-week-block {
+  background: var(--color-bg-panel);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 8px;
+  margin: 24px auto 18px auto;
+  max-width: 500px;
+  padding: 18px 12px 12px 12px;
+  box-shadow: 0 0 8px var(--color-accent-mid);
+}
+.budui-week-label {
+  font-size: 22px;
+  color: var(--color-accent-strong);
+  margin-bottom: 10px;
+  text-shadow: none;
+  font-weight: bold;
+}
+.budui-week-section {
+  margin-bottom: 16px;
+}
+.budui-list-placeholder {
+  color: var(--color-accent);
+  font-size: 18px;
+  margin: 6px 0 0 0;
+  padding-left: 8px;
+}
+.budui-add-btn {
+  font-size: 16px;
+  padding: 4px 12px;
+  margin-left: 10px;
+  display: inline-block;
+  width: auto;
+}
+
+  
+/* BUDGET UI PROGRESS BAR */
+.budui-progress-bar-wrapper {
+  margin: 32px auto 0 auto;
+  max-width: 400px;
+  text-align: center;
+}
+.budui-progress-labels, .budui-progress-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 32px;
+  color: var(--color-accent);
+  margin: 0 4px 2px 4px;
+}
+.budui-progress-bar-bg {
+  width: 100%;
+  height: 40px;
+  background: var(--color-bg-panel);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 8px;
+  box-shadow: 0 0 8px var(--color-accent-mid);
+  margin: 0 0 2px 0;
+  overflow: hidden;
+}
+.budui-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-mid) 100%);
+  border-radius: 8px 0 0 8px;
+  box-shadow: 0 0 8px var(--color-accent-mid);
+  transition: width 0.4s;
+}
+
+/* BUDGET UI ACCORDION COLUMN */
+.budui-accordion-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 0 auto 32px auto;
+  max-width: 400px;
+  width: 100%;
+  
+}
+.budui-accordion-btn {
+  background: var(--color-bg-panel);
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  font-family: "VT323", monospace;
+  font-size: var(--accordion-cat-font-size, 22px);
+  padding: 14px 0;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 8px var(--color-accent-mid);
+  text-shadow: 0 0 1px var(--color-accent-mid) !important;
+}
+.budui-accordion-btn:hover {
+  background: var(--color-hover-bg);
+  box-shadow: 0 0 12px var(--color-accent-mid);
+}
+.budui-accordion-panel {
+  display: none;
+  background: var(--color-bg-panel-light);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  padding: 18px 0 10px 0;
+  color: var(--color-accent);
+  font-size: 18px;
+  box-shadow: 0 0 6px var(--color-accent-mid);
+  text-shadow: 0 0 1px var(--color-accent-mid) !important;
+
+}
+.budui-section-title {
+  font-size: 20px;
+  color: var(--color-accent-strong);
+  margin: 18px 0 8px 0;
+  text-shadow: 0 0 1px var(--color-accent-strong);
+  font-weight: bold;
+}
+.budui-action-btn {
+  display: block;
+  width: 180px;
+  max-width: 90%;
+  margin: 8px auto;
+  padding: 12px 0;
+  font-size: 20px;
+  background: transparent;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  font-family: "VT323", monospace;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+/* Make modal input fields wider than the button */
+.budui-modal input.budui-input {
+  width: 240px;
+  max-width: 100%;
+  font-size: 20px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+}
+.budui-action-btn:hover {
+  background: var(--color-hover-bg);
+  box-shadow: 0 0 10px var(--color-accent-mid);
+}
+/* BUDGET UI SUMMARY BAR */
+.budui-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 32px 0 24px 0;
+}
+.budui-summary-card {
+  flex: 1 1 120px;
+  min-width: 120px;
+  background: var(--color-bg-summary);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 6px;
+  padding: 18px 10px 12px 10px;
+  text-align: center;
+  box-shadow: 0 0 8px var(--color-accent-mid);
+}
+.budui-summary-label {
+  font-size: 20px;
+  color: var(--color-accent);
+  margin-bottom: 8px;
+  text-shadow: 0 0 1px var(--color-accent-mid);
+}
+.budui-summary-value {
+  font-size: 36px;
+  color: var(--color-accent-strong);
+  font-weight: bold;
+  margin-top: 2px;
+  text-shadow: 0 0 1px var(--color-accent-strong);
+}
+  
+/* LOGOUT BUTTON (bottom of page) */
+.logout-btn {
+  display: inline-block;
+  font-size: 22px;
+  min-width: 160px;
+  padding: 12px 32px;
+  margin: 0 auto;
+  background: transparent;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  font-family: "VT323", monospace;
+  text-shadow: 0 0 1px var(--color-accent);
+  box-shadow: 0 0 10px var(--color-accent-mid);
+  transition: background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.logout-btn:hover {
+  background: var(--color-hover-bg-strong);
+  box-shadow: 0 0 16px var(--color-accent-mid);
+}
+
+/* --- Merged layout/spacing rules from style.css for menu/form elements, with VT323 font enforced --- */
+.view {
+  margin-top: 10px;
+}
+
+.line {
+  margin-top: 8px;
+  font-family: var(--font-primary, "VT323"), monospace;
+}
+
+.activity-line {
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: var(--font-primary, "VT323"), monospace;
+}
+.activity-line:hover {
+  text-decoration: underline;
+}
+
+#menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  #menu {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+#activityForm input,
+#profileForm input {
+  display: block;
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  font-family: var(--font-primary, "VT323"), monospace;
+}
+
+#activityForm button,
+#profileForm button {
+  margin-right: 5px;
+  margin-bottom: 8px;
+  padding: 8px;
+  width: auto;
+  font-family: var(--font-primary, "VT323"), monospace;
+}
+
+button:not(.budui-lock-btn), .pipboy-theme button:not(.budui-lock-btn) {
+  background: transparent;
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: var(--border-radius-sm, 4px);
+  font-family: var(--font-primary, "VT323"), monospace;
+  font-size: 18px;
+  padding: 8px 16px;
+  cursor: pointer;
+  margin-top: 5px;
+  transition: 0.2s;
+}
+
+input, .pipboy-theme input {
+  font-family: var(--font-primary, "VT323"), monospace;
+}
+/* --- Merged compact layout and error/menu rules from style.css for legacy compatibility --- */
+#menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  #menu {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.pipboy-theme button:not(.budui-lock-btn) {
+  padding: 8px 16px;
+  font-size: 18px;
+  margin-top: 5px;
+}
+
+#menu button {
+  font-size: 20px;
+  padding: 10px 16px;
+}
+
+.error {
+  color: var(--color-error) !important;
+  margin-top: 5px;
+}
+
+.promo {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#promoMessage {
+  margin-top: 20px;
+  margin-bottom: 40px;
+}
+
+#dailyQuote {
+  font-size: 20px;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 25px;
+  text-align: center;
+  color: var(--color-accent);
+}
+/* ---------------------------------------------------------
+   PIP-BOY THEME (Fallout 4 style)
+   Soft green, CRT scanlines, glow, retro borders
+   TOUCH-FRIENDLY UI SCALE ENABLED
+--------------------------------------------------------- */
+
+
+
+/* GLOBAL UI SCALE */
+.pipboy-theme {
+  background: var(--color-bg-main);
+  color: var(--color-accent);
+  font-family: "VT323", monospace;
+  letter-spacing: 1px;
+  text-shadow: 0 0 1px var(--color-accent);
+  position: relative;
+  overflow-x: hidden;
+  max-width: 600px; /* Constrain main app width for desktop */
+  margin: 0 auto;   /* Center horizontally */
+  min-height: 100vh;
+  border: none !important;
+  /*filter: brightness(1.08) drop-shadow(0 0 8px var(--color-accent-mid));*/
+
+}
+
+/* Pip-Boy background grid / lines */
+.pipboy-theme::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-scanline) 0px,
+    var(--color-scanline) 2px,
+    transparent 3px,
+    transparent 4px
+  );
+  opacity: 0.25;
+  z-index: 9996; /* below vignette and sweep */
+  border: none !important;
+}
+
+/* Vertical refresh sweep */
+body.pipboy-theme::before {
+  content: none !important;
+  background: none !important;
+  animation: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+
+@keyframes jitter {
+  0% { transform: translate(0, 0); }
+  2% { transform: translate(1px, -1px); }
+  4% { transform: translate(-1px, 1px); }
+  6% { transform: translate(0, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Jitter effect - default pipboy theme only */
+.pipboy-theme:not([data-theme]) #terminal {
+  animation: jitter 8s infinite;
+}
+
+/* Add data-jitter="true" to body to enable jitter on any theme */
+.pipboy-theme[data-jitter="true"] #terminal {
+  animation: jitter 8s infinite;
+}
+
+
+/* Bouncing bubble background container */
+.bubble-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Individual bouncing bubbles */
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(160, 216, 239, 0.28), rgba(160, 216, 239, 0.14) 50%, transparent 75%);
+  box-shadow: 0 0 15px 5px rgba(160, 216, 239, 0.11);
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+
+/* Subtle vignette */
+.pipboy-theme::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 60%, var(--color-vignette));
+  z-index: 9998;
+  box-shadow: none !important;
+}
+
+.pip-dots::after {
+  content: "";
+  animation: pipDots 1.2s steps(4, end) infinite;
+}
+
+@keyframes pipDots {
+  0%   { content: ""; }
+  25%  { content: "."; }
+  50%  { content: ".."; }
+  75%  { content: "..."; }
+  100% { content: ""; }
+}
+
+
+/* Panels / Cards */
+.pipboy-theme .panel,
+.pipboy-theme .card,
+.pipboy-theme .container {
+  border: none !important;
+  padding: 20px;
+  margin: 20px;
+  background: none !important;
+  box-shadow: none !important;
+  border-radius: 4px;
+}
+
+/* Buttons */
+.pipboy-theme button:not(.budui-lock-btn) {
+  background: transparent;
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  color: var(--color-accent);
+
+  /* ⭐ Touch-friendly buttons */
+  padding: 14px 24px;
+  font-size: 26px;
+
+  font-family: "VT323", monospace;
+  cursor: pointer;
+  text-shadow: 0 0 1px var(--color-accent);
+  transition: 0.2s;
+
+}
+
+.pipboy-theme button:not(.budui-lock-btn):hover {
+  background: var(--color-hover-bg-strong);
+  box-shadow: 0 0 10px var(--color-accent-mid);
+}
+
+/* Menu buttons */
+#menu button {
+  font-size: 28px;
+  padding: 16px 24px;
+}
+
+#menu button.active {
+  background: var(--color-hover-bg-strong);
+  border: 2px solid var(--color-accent-mid);
+  box-shadow: 0 0 12px var(--color-accent-mid);
+  color: var(--color-accent);
+}
+
+
+/* Titles */
+.line strong,
+.history-title {
+  color: var(--color-accent-strong) !important;
+  font-weight: bold;
+  font-size: 30px;
+  text-shadow: 0 0 1px var(--color-accent-mid);
+  margin-top: 18px;
+}
+
+/* Statistics / Section Titles */
+.pip-title {
+  color: var(--color-accent) !important;
+  font-weight: bold;
+  font-size: 30px;
+  text-shadow: 0 0 1px var(--color-accent);
+  margin-top: 18px;
+}
+
+/* List items */
+.pip-item,
+.line,
+.activity-line,
+.stat-line {
+  color: var(--color-accent-summary) !important;
+  text-shadow: 0 0 1px var(--color-accent-summary);
+  /* ⭐ Touch-friendly list items */
+  font-size: 26px;
+  padding: 6px 0;
+}
+
+/* Status text */
+.pip-status,
+.pip-dots {
+  color: var(--color-accent-summary) !important;
+  text-shadow: 0 0 1px var(--color-accent-summary);
+  font-size: 14px !important;
+  margin-top: 100px;
+}
+
+/* Inputs */
+.pipboy-theme input,
+.pipboy-theme select {
+  background: var(--color-bg-panel-medium);
+  border: 2px solid var(--color-accent-mid);
+  border-radius: 4px;
+  color: var(--color-accent);
+  padding: 10px;
+  font-family: "VT323", monospace;
+  font-size: 22px;
+  text-shadow: 0 0 1px var(--color-accent);
+}
+
+/* Headings */
+.pipboy-theme h1,
+.pipboy-theme h2,
+.pipboy-theme h3 {
+  color: var(--color-accent);
+  text-shadow: 0 0 1px var(--color-accent-mid);
+  border-bottom: 2px solid var(--color-accent-mid);
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+}
+
+/* Health Bar */
+.pipboy-theme #healthBarFill {
+  background: var(--color-accent-mid);
+  box-shadow: 0 0 10px var(--color-accent-mid);
+  border-radius: 2px;
+  transition: width 0.4s ease-out, background 0.3s;
+}
+
+/* Thicker Pip-Boy health bar */
+#healthBarContainer {
+  background: var(--color-bg-panel-80); /* darker Pip-Boy green/black */
+  border: 3px solid var(--color-accent-mid);         /* glowing border */
+  box-shadow: 0 0 10px var(--color-accent-mid);      /* glow */
+  border-radius: 4px;
+
+  max-width: 300px; /* adjust until it fits your layout */ 
+  width: 100%; margin: 0 auto; /* centers it */
+  height: 28px !important;   /* increase the overall bar height */
+  padding: 3px;   
+  margin-top: 0px;           /* optional: adds a nice border gap */
+  margin-bottom: 25px; 
+}
+
+#healthBarFill {
+  height: 100% !important;   /* fill the container vertically */
+  border-radius: 3px;        /* keeps the rounded look */ 
+}
+
+#healthBarFill.high {
+  background-color: var(--color-accent-mid); /* Pip-Boy green */
+}
+
+#healthBarFill.mid {
+  background-color: var(--color-health-mid); /* yellow-green */
+}
+
+#healthBarFill.low {
+  background-color: var(--color-health-low); /* orange-red */
+}
+
+
+.pipboy-theme #healthBarLabel {
+  color: var(--color-accent);
+  font-weight: normal;
+  font-size: 32px;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+/* Friends menu input */
+.pipboy-theme #friendControls input {
+  background: var(--color-bg-panel-30);
+  border: 2px solid var(--color-accent-mid);
+  color: var(--color-accent);
+  text-shadow: 0 0 2px var(--color-accent);
+  box-shadow: 0 0 4px var(--color-accent-mid);
+  padding: 10px;
+  font-size: 22px;
+}
+
+/* Friend details */
+.friend-details {
+  color: var(--color-accent) !important;
+  text-shadow: 0 0 6px var(--color-accent) !important;
+}
+
+#friendControls {
+  display: flex;
+  flex-direction: column; /* input on its own row */
+  gap: 10px;
+}
+
+#friendControls button {
+  width: 120px;              /* your equal width */
+  display: flex;             /* center content inside */
+  justify-content: center;   /* horizontal centering */
+  align-items: center;       /* vertical centering */
+  text-align: center;        /* just in case */
+}
+
+
+
+#friendControls .button-row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: center; /* centers Follow + Unfollow */
+}
+
+
+.friendButtons {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+
+/* Terminal */
+.pipboy-theme #terminal {
+  position: relative;
+  border: 3px solid var(--color-accent-mid);
+  box-shadow: none !important;
+  border-radius: 8px;
+  background: var(--color-bg-main) !important;
+  padding: 20px;
+}
+
+/* Ensure terminal children are above bubbles */
+.pipboy-theme #terminal > *:not(.bubble-container) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Dropdown modal */
+.pipboy-modal .modal-content {
+  width: 80%;
+  max-height: 30vh;
+  overflow: auto;
+  background: var(--color-bg-panel-extra-strong);
+  border: 3px solid var(--color-accent-mid);
+  box-shadow: 0 0 18px var(--color-accent-mid);
+  padding: 24px;
+  border-radius: 6px;
+  margin-top: 25px;
+
+}
+
+.pipboy-modal {
+
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/*anchor*/
+#menuAnchor {
+  height: 1px;
+}
+
+
+
+/* Modal title */
+.modal-title {
+  color: var(--color-accent);
+  font-size: 28px;
+  text-shadow: 0 0 1px var(--color-accent-mid);
+}
+
+/* Modal input */
+#modalActivityInput {
+  width: calc(100% - 8px);
+  padding: 10px 14px 10px 10px;
+  font-size: 22px;
+  background: var(--color-bg-main);
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  box-shadow: 0 0 8px var(--color-accent-mid);
+  box-sizing: border-box;
+}
+
+/* Dropdown items */
+.modal-dropdown div {
+  padding: 10px;
+  cursor: pointer;
+  color: var(--color-accent);
+  font-size: 22px;
+  text-shadow: 0 0 1px var(--color-accent);
+}
+
+.modal-dropdown div:hover {
+  background: var(--color-hover-bg-strong);
+  box-shadow: 0 0 10px var(--color-accent-mid);
+}
+
+#modalDropdown {
+  max-height: 30vh;     /* adjust as needed */
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+/* Modal buttons */
+#modalAddBtn,
+#modalCloseBtn {
+overflow-y: fixed;
+  width: 40%;
+  padding: 12px;
+  font-size: 24px;
+  background: var(--color-bg-main);
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent-mid);
+  box-shadow: 0 0 8px var(--color-accent-mid);
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;            /* space between buttons */
+  margin-top: 16px;
+}
+
+.modal-buttons button {
+  width: auto;
+  min-width: 120px;
+  text-align: center;
+}
+
+#modalAddBtn:hover,
+#modalCloseBtn:hover {
+  background: var(--color-hover-bg-strong);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 12px var(--color-accent);
+}
+
+body.modal-open {
+  overflow: hidden;
+  height: 100vh;
+}
+
+
+
+
+/* Placeholder */
+.pipboy-theme ::placeholder {
+  color: var(--color-accent);
+  opacity: 0.5;
+  text-shadow: 0 0 1px var(--color-accent);
+}
+
+/* Global font lock for Pip-Boy (uses theme variable) */
+.pipboy-theme *:not(.ascii-logo) {
+  font-family: var(--font-primary, "VT323"), monospace;
+}
+
+/* ASCII logo keeps its own font */
+.ascii-logo {
+  color: var(--color-accent);
+  text-shadow: 0 0 6px var(--color-accent), 0 0 10px var(--color-accent);
+  font-family: var(--font-heading, "VT323"), monospace;
+  margin: 0;
+  line-height: 1;
+  font-size: var(--logo-font-size, 64px);
+  margin-top: 50px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+
+
+#dailyQuote {
+  font-size: 26px;
+  font-weight: normal;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  text-align: center;
+  color: var(--color-accent-summary);
+}
+
+.promo {
+  font-size: 26px;
+  font-weight: normal;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: var(--color-accent);
+}
+
+.menu-section-title {
+  font-size: 30px !important;
+    text-shadow: 0 0 1px var(--color-accent-strong) !important;
+  color: var(--color-accent-strong) !important;
+  text-shadow: 0 0 6px var(--color-accent-summary) !important;
+  margin-bottom: 10px;
+}
+
+/* ============================
+   CONFIRMATION MODAL (YES/NO)
+   ============================ */
+.edit-confirm {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-bg-panel-extra-strong);
+  border: 2px solid var(--color-accent-mid);
+  min-width: 220px;
+  max-width: 90vw;
+  min-height: 120px;
+  max-height: 70vh;
+  padding: 32px 16px 28px 16px;
+  box-shadow: 0 0 18px var(--color-accent-mid);
+  z-index: 9999;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.edit-confirm .modal-title {
+  margin-bottom: 36px;
+  font-size: 32px;
+  letter-spacing: 2px;
+  box-sizing: border-box;
+}
+
+.edit-confirm .confirm-line {
+  margin-bottom: 24px !important;
+  margin-top: 0 !important;
+  font-size: 22px !important;
+    text-shadow: 0 0 1px var(--color-accent) !important;
+}
+
+.edit-confirm .confirm-row {
+  width: 100%;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 18px;
+  box-sizing: border-box;
+}
+
+.edit-confirm .confirm-row .pip-btn {
+  width: 120px;
+  height: 48px;
+  font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ============================
+   GENERIC CONFIRM ROW
+   ============================ */
+.confirm-row {
+  margin-top: 0px;
+  display: flex;
+  gap: 32px; /* default gap for modal */
+    justify-content: center;
+    align-items: center;
+}
+
+/* ============================
+   EDIT FORM BUTTONS (normal size)
+   ============================ */
+#activityForm .confirm-row {
+  gap: 12px; /* smaller gap for edit form */
+}
+
+#activityForm .confirm-row .pip-btn {
+  width: auto;
+  height: auto;
+  font-size: 32px;
+  padding: 6px 14px;
+}
+
+#activityForm .confirm-row button {
+  width: 120px;
+  height: auto;
+  font-size: 18px;
+  padding: 6px 14px;
+}
+
+#addActivityBtn {
+  width: auto !important;
+  height: 70px !important;
+  font-size: 32px !important;
+}
+
+#savechangesBtn {
+  width: 120px !important;
+  height: auto !important;
+  font-size: 18px !important;
+}
+
+
+
+/* ============================
+   DELETE FORM BUTTONS
+   ============================ */
+#deleteForm button {
+  width: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+}
+
+/* ============================
+   BASE PIP BUTTON STYLE
+   ============================ */
+.pip-btn {
+  display: inline-block;
+  border: 2px solid var(--color-accent-mid);
+  padding: 6px 14px;
+  cursor: pointer;
+  color: var(--color-accent);
+  font-size: 18px;
+  text-transform: uppercase;
+  background: transparent;
+  user-select: none;
+}
+
+.pip-btn:hover {
+  background: var(--color-hover-bg-strong);
+  box-shadow: 0 0 8px var(--color-accent-mid);
+}
+
+/* ============================
+   CONFIRM LINE
+   ============================ */
+.confirm-line {
+  padding: 0 !important;
+  margin: 0px 0 !important;
+  line-height: .60 !important;
+  font-size: 22px !important;
+}
+
+/*INFO*/
+#healthInfoToggle {
+  cursor: pointer;
+  padding-right: 6px;
+  color: var(--color-accent);
+  text-shadow: 0 0 4px var(--color-accent);
+}
+
+
+
+#healthInfoPanel {
+  margin-top: 10px;
+  padding: 12px;
+  border: 2px solid var(--color-accent-mid);
+  background: var(--color-bg-panel-medium);
+  box-shadow: 0 0 12px var(--color-accent-mid);
+  border-radius: 4px;
+  width: auto;
+}
+
+.hidden {
+  display: none;
+}
+
+
+
+.launcher-back-btn {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent;
+  text-shadow: 0 0 4px var(--color-neon);
+  font-size: 70px !important;
+  padding: 0px 0px !important;
+  filter: none !important;
+}
+
+/* ---------------------------------------------------------
+   GLOBAL TEXT SHADOW OVERRIDE (Unified Glow)
+   Forces all text shadows to var(--color-accent-summary)
+--------------------------------------------------------- */
+
+.pipboy-theme,
+.pipboy-theme,
+.pipboy-theme * {
+  text-shadow: 0 0 1px var(--color-accent-summary) !important;
+}
+
+
+/*8cff9a//4cff6a//00cc55/*/
+
+/* LOGIN FORM LAYOUT OVERRIDES */
+/* Remove green border and glow from login panel */
+#loginView {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 340px;
+  margin: 0 auto;
+  gap: 0;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.pipboy-theme .panel {
+  border: none !important;
+  box-shadow: none !important;
+}
+#loginView .line {
+  margin-top: 18px;
+  margin-bottom: 4px;
+  font-size: 22px;
+  color: var(--color-accent-summary) !important;
+  text-shadow: 0 0 3px var(--color-accent-summary);
+  font-family: var(--font-primary, "VT323"), monospace;
+  padding: 0;
+}
+#loginView input {
+  width: 100%;
+  margin-bottom: 0;
+  margin-top: 0;
+  font-size: 22px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+#loginView .error {
+  margin-top: 12px;
+  margin-bottom: 0;
+  display: block;
+}
+#loginView .login-btn-row {
+  display: flex;
+  justify-content: center;   /* centers the buttons as a group */
+  align-items: center;
+  gap: 16px;                 /* space between buttons */
+  margin-top: 18px;
+  margin-bottom: 20px;
+}
+
+#loginView .login-btn-row button {
+  flex: 1 1 0;
+  width: auto;
+  font-size: 22px;
+  padding: 10px 10px;
+  margin: 0;                 /* remove extra margin */
+  justify-content: center;
+}
+
+.pipboy-theme {
+  box-shadow: none !important;
+}
+.pipboy-theme::before,
+.pipboy-theme::after {
+  background: none !important;
+  box-shadow: none !important;
+}

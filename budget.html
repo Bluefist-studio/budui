@@ -1,0 +1,860 @@
+    <!-- Inline warning message area is now inside the profile accordion below -->
+  <!-- Modal for entry actions -->
+  <div id="buduiEntryModal" class="budui-modal" style="display:none;">
+    <div class="budui-modal-content">
+      <!-- Add/Edit fields -->
+      <div id="modalEntryEdit" style="display:none; flex-direction:column; gap:10px; align-items:center; width:100%;">
+        <input id="modalEditDesc" class="budui-input" placeholder="Description">
+        <input id="modalEditAmt" class="budui-input" placeholder="$0.00" type="text" inputmode="decimal">
+        <!-- Add mode: Add/Cancel -->
+        <div class="budui-modal-btn-row" id="modalEditBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:none;">
+          <button class="budui-action-btn" id="modalEditConfirmBtn">Add</button>
+          <button class="budui-action-btn" id="closeEntryModal">Cancel</button>
+        </div>
+        <!-- Initial Edit mode: Save/Delete/Cancel -->
+        <div class="budui-modal-btn-row" id="modalEditInitBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:none;">
+          <div class="budui-modal-edit-row">
+            <button class="budui-action-btn" id="modalEditInitBtn">Save</button>
+            <button class="budui-action-btn" id="modalEditInitDeleteBtn">Delete</button>
+            <button class="budui-action-btn budui-modal-cancel-btn" id="modalEditInitCancelBtn">Cancel</button>
+          </div>    
+        </div>
+      </div>
+      <!-- Info view -->
+      <div id="modalEntryInfo" class="budui-modal-entry-info">
+        <div id="modalEntryDesc"></div>
+        <div id="modalEntryAmount"></div>
+        <div class="budui-modal-btn-row" id="modalInfoBtnRow" style="justify-content:center; gap:18px; margin-top:10px;">
+          <button class="budui-action-btn" id="modalEditBtn">Edit</button>
+          <button class="budui-action-btn" id="modalDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BUDGET UI</title>
+  <link rel="stylesheet" href="pipboybNG.css">
+  <link rel="stylesheet" href="budui-quick-form-stacked.css">
+</head>
+
+
+<script src="budget.js"></script>
+<script src="others.js"></script>
+<script src="savings.js"></script>
+<script src="multi-media.js"></script>
+<script src="housing.js"></script>
+<script src="income.js"></script>
+<script src="transport.js"></script>
+
+
+<!-- <body class="pipboy-theme"> -->
+<body class="pipboy-theme" data-theme="winter">
+<!-- <body class="pipboy-theme" data-theme="stranger">
+<body class="pipboy-theme" data-theme="halloween">
+<body class="pipboy-theme" data-theme="google">
+<body class="pipboy-theme" data-theme="synthwave">
+<body class="pipboy-theme" data-theme="terminal">
+<body class="pipboy-theme" data-theme="ocean">
+<body class="pipboy-theme" data-theme="sunset"> -->
+
+
+<div id="terminal" style="position: relative;">
+  
+
+
+  <div id="header">
+    <pre class="ascii-logo">BUDGET UI</pre>
+  </div>
+
+
+
+    <!-- Tutorial Overlay Modal -->
+        <div id="buduiTutorialOverlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#232a36; z-index:9999;">
+          <div style="background:#232a36; color:#ccc; width:100%; max-height:100vh; overflow-y:auto; border-radius:16px; box-shadow:0 0 24px #1e2b3c; padding:32px 24px; position:relative; box-sizing:border-box;">
+        <button onclick="document.body.style.overflow='';document.getElementById('buduiTutorialOverlay').style.display='none'" style="position:absolute; top:18px; right:18px; font-size:22px; border:none; background:#dbe2ea; color:#2a2a2a; border-radius:8px; padding:4px 16px; cursor:pointer;">Close</button>
+        <h1 style="color:#ccc; margin-top: 50px;">Budget UI Tutorial & Help</h1>
+        <p>Welcome to the Budget UI help overlay! This guide will walk you through the main features and functionalities of the Budget UI application, designed to help you manage your biweekly budget effectively.</p>
+        <h2 style="color:#ccc;">Math & Biweekly Budget Cycle</h2>
+        <ul>
+          <li>All calculations are based on a two-week period, matching most payroll schedules.</li>
+          <li>For each category, the app adds the "First" and "Second" amount fields. The <b>Total</b> field is their sum of both payment fields.</li>
+          <li><b>Income Forecast</b> and <b>Expense Forecast</b> show expected totals for the period. <b>Account Balance</b> is <b>Income Forecast - Expense Forecast</b> and should match what is currently in your account.</li>
+          <li><b>Current Expenses</b> shows the sum of all paid expenses for the current period.</li>
+          <li>The<b> Progress Bar</b> visually shows remaining budget vs. spending.</li>
+        </ul>
+        <h2 style="color:#ccc;">Income Section</h2>
+        <ul>
+          <li>Expand/collapse the section with the accordion button.</li>
+          <li>Lock/unlock fields to prevent accidental edits and allow marking income as received.</li>
+          <li>Edit category names and enter amounts for each income source.</li>
+          <li>Totals update automatically.</li>
+        </ul>
+        <h2 style="color:#ccc;">Expense Section</h2>
+        <ul>
+          <li>Expand/collapse expense categories (e.g., Housing, Transport).</li>
+          <li>Lock/unlock fields for each category to prevent accidental edits and allow marking expenses as paid.</li>
+          <li>Edit category names and enter amounts for each expense type.</li>
+          <li>Totals update automatically.</li>
+        </ul>
+        <h3 style="color:#ccc;">Sub-Category Placeholders</h3>
+        <ul>
+          <li>Some categories include empty fields labeled "Sub-category." Type a name and amount to make them visible and included in calculations.</li>
+          <li>Clear the name and amount to hide unused sub-categories and keep your budget tidy.</li>
+        </ul>
+        <h2 style="color:#ccc;">How to Edit Your Budget</h2>
+        <ol>
+          <li>Expand the section you want to edit.</li>
+          <li>Unlock fields.</li>
+          <li>Edit category names or enter new amounts.</li>
+          <li>Totals update automatically. Review the summary bar for changes.</li>
+          <li>Lock fields when finished.</li>
+        </ol>
+        <h2 style="color:#ccc;">Paid Mechanic</h2>
+        <ul>
+          <li>Mark expenses as <b>paid</b> for the current biweekly period to track which bills have been settled.</li>
+          <li>While the section is locked, click an expense entry to mark it as paid. Paid expenses are visually highlighted and included in the <b>Current Expenses</b> total.</li>
+          <li>This helps you avoid double-paying and gives a clear view of what still needs to be paid.</li>
+          <li><b>Monthly Payments:</b> For bills that are paid only once a month (e.g., rent, insurance), the app tracks their payment status within the biweekly cycle. If a monthly payment is marked as paid in one biweekly period, both biweekly periods are updated accordingly. This ensures you only pay these bills once per month and prevents confusion.</li>
+          <li><b>Reset All Paid Status Button:</b> In the profile menu, use this button to clear the paid status for all expenses and income entries in the current cycle. This is useful at the start of a new month, allowing you to begin tracking payments from scratch. Be careful: resetting will mark all entries as unpaid, so only use it when you want to start fresh.</li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+
+  <!-- LOGIN/CREATE VIEW -->
+  <div id="loginView" class="view">
+    <div class="line">USERNAME:</div>
+    <input id="loginUser" autocomplete="off">
+
+    <div class="line">EMAIL:</div>
+    <input id="loginEmail" type="email" autocomplete="off">
+
+    <div class="line">PIN:</div>
+    <input id="loginPin" type="password">
+
+    <div class="login-btn-row">
+      <button id="loginBtn">LOGIN</button>
+      <button id="createBtn">CREATE USER</button>
+    </div>
+    <div id="loginError" class="error"></div>
+  </div>
+
+
+
+  <!-- Future Budget UI views go here, hidden by default -->
+  <div id="appView" class="view hidden">
+    <!-- Logo (already at top via ascii-logo) -->
+    
+    <!-- Help Button centered below logo -->
+    <div style="text-align:center; margin-bottom:10px;">
+      <button id="helpReticleBtn" onclick="document.body.style.overflow='hidden';document.getElementById('buduiTutorialOverlay').style.display='block'">Help<span class="reticle-bottom-left"></span><span class="reticle-bottom-right"></span></button>
+    </div>
+    
+    <div class="budui-progress-bar-wrapper">
+      <div class="budui-progress-labels">
+        <span>Remaining</span>
+        <span>Spending</span>
+      </div>
+      <div class="budui-progress-bar-bg">
+        <div class="budui-progress-bar-fill" id="buduiProgressBar" style="width: 50%"></div>
+      </div>
+      <div class="budui-progress-values">
+        <span id="buduiRemainingForecast">$0.00</span>
+        <span id="buduiProgressSpending">$0.00</span>
+      </div>
+    </div>
+    <div class="budui-summary-bar">
+      <div class="budui-summary-card">
+        <div class="budui-summary-label">Expense Forecast</div>
+        <div class="budui-summary-value" id="buduiExpenses">$0.00</div>
+      </div>
+      <div class="budui-summary-card">
+        <div class="budui-summary-label">Income Forecast</div>
+        <div class="budui-summary-value" id="buduiIncome">$0.00</div>
+      </div>
+      <div class="budui-summary-card">
+        <div class="budui-summary-label">Current Expenses</div>
+        <div class="budui-summary-value" id="buduiexpensesCurrent">$0.00</div>
+      </div>
+      <div class="budui-summary-card">
+        <div class="budui-summary-label">Account Balance</div>
+        <div class="budui-summary-value" id="buduiRemainingCurrent">$0.00</div>
+      </div>
+    </div>
+
+
+    <!-- main accordion -->
+    <div class="budui-accordion-col" gap="24px" >
+
+        <!-- INCOME -->
+      <button class="budui-accordion-btn main-cat" id="incomeCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
+        Incomes
+      </button>
+      <div class="budui-accordion-panel">
+        <div class="budui-block" style="margin-bottom:24px; position:relative;">
+          <button id="lock-income" class="budui-lock-btn" onclick="toggleLockIncome()" title="Lock/Unlock Fields">
+            <span id="lock-income-icon">🔓</span>
+          </button>
+        </div>
+        <div class="budui-block" style="margin-bottom:24px;">
+          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Salary" />
+          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+          </div>
+        </div>
+        <div class="budui-block" style="margin-bottom:24px;">
+          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Bonus" />
+          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+          </div>
+        </div>
+        <div class="budui-block" style="margin-bottom:24px;">
+          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Investments" />
+          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+          </div>
+        </div>
+        <div class="budui-block" style="margin-bottom:24px;">
+          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Side Hustle" />
+          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+          </div>
+        </div>
+        <div class="budui-block" style="margin-bottom:24px;">
+          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Other" />
+          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+          </div>
+        </div>
+        <div class="budui-block" style="margin-bottom:24px;">
+          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+          </div>
+        </div>
+      </div>
+
+
+
+
+
+      <!-- EXPENSE -->
+      <button class="budui-accordion-btn main-cat" id="expensesCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
+        Expenses
+      </button>
+      <div class="budui-accordion-panel budui-accordion-col" style="display:none; border:none; box-shadow:none; background:transparent;">
+          <button class="budui-accordion-btn.cat" id="housingCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
+          Housing <span id="housingCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span>
+          </button>
+          <div class="budui-accordion-panel">
+              <div class="budui-block" style="margin-bottom:24px; position:relative;">
+                <button id="lock-housing" class="budui-lock-btn" onclick="toggleLockHousing()" title="Lock/Unlock Fields">
+                <span id="lock-housing-icon">🔓</span>
+                </button>
+              </div>
+            <div class="budui-block" style="margin-bottom:24px; position:relative;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Mortgage" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div> 
+          <div class="budui-block" style="margin-bottom:24px; position:relative;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="House insurance" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Property Taxes" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Electricity" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Water" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Cleaning" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Food" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+          </div>
+          </div>        
+          
+          <!-- transport -->
+          <button class="budui-accordion-btn.cat" id="transportCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
+                  Transport <span id="transportCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span>
+                </button>
+          <div class="budui-accordion-panel">
+            <div class="budui-block" style="margin-bottom:24px; position:relative;">
+              <button id="lock-transport" class="budui-lock-btn" onclick="toggleLockTransport()" title="Lock/Unlock Fields">
+                <span id="lock-transport-icon">🔓</span>
+              </button>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Car Payments" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Car Insurance" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Gas" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Maintenance" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Registration" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Other" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- multi-media -->
+          <button class="budui-accordion-btn.cat" id="multimediaCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
+            Multi-media <span id="multimediaCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span>
+          </button>
+          <div class="budui-accordion-panel">
+              <div class="budui-block" style="margin-bottom:24px; position:relative;">
+                  <button id="lock-multi-media" class="budui-lock-btn" onclick="toggleLockMultiMedia()" title="Lock/Unlock Fields">
+                  <span id="lock-multi-media-icon">🔓</span>
+                  </button>
+                </div>
+              <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Rogers" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Prime" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Prime Channel" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Netflix" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Kindle" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Telus" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Spotify" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Disney+" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Microsoft" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Apple Bill" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Apple" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <!-- 4 placeholders -->
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+          </div>
+
+
+
+
+          <!-- savings -->
+          <button class="budui-accordion-btn.cat" id="savingsCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">Savings <span id="savingsCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span></button>
+          <div class="budui-accordion-panel">
+            <div class="budui-block" style="margin-bottom:24px; position:relative;">
+              <button id="lock-savings" class="budui-lock-btn" onclick="toggleLockSavings()" title="Lock/Unlock Fields">
+                <span id="lock-savings-icon">🔓</span>
+              </button>
+              </div>
+              <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="RESP" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Investments" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Life Insurance" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Travel" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Home" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="ISA" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Events" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Emergency" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+              </div>
+            </div>
+          </div>
+
+
+
+
+
+        <!--- Others Section -->
+        <button class="budui-accordion-btn.cat" id="othersCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">Others <span id="othersCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span></button>
+        <div class="budui-accordion-panel">
+          <div class="budui-block" style="margin-bottom:24px; position:relative;">
+            <button id="lock-others" class="budui-lock-btn" onclick="toggleLockOthers()" title="Lock/Unlock Fields">
+              <span id="lock-others-icon">🔓</span>
+            </button>
+            </div>
+            <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Service Fees" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Chiro" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Credit Card" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Orthodontis" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Renovation" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Misc." />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+          <div class="budui-block" style="margin-bottom:24px;">
+            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
+            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
+              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
+              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
+            </div>
+          </div>
+        </div>
+       
+    </div>
+
+        <!-- SPENDING CATEGORY -->
+        <button class="budui-accordion-btn main-cat" id="spendingCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
+        Spending
+        </button>
+        <div class="budui-accordion-panel">
+            <button class="budui-action-btn" id="addSpendingBtn">Add Spending</button>
+            <div id="spendingList" class="budui-list-placeholder">No spending entries yet.</div>
+            <div class="budui-list-total" id="spendingPanelTotal">Total: $0.00</div>
+        </div>
+        <!-- PROFILE ACCORDION -->
+        <button class="budui-accordion-btn main-cat" id="profileAccordionBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%; margin-top:18px;">
+          Profile
+        </button>
+        <div class="budui-accordion-panel" id="profileAccordionPanel">
+          <div style="padding: 18px 8px; text-align: center;">
+            <button class="budui-action-btn" id="resetPaidStatusBtn" style="margin-bottom: 16px;">Reset All Paid Status</button><br>
+            <button class="budui-action-btn" id="logoutBtn" style="background: #ff3939; color: #fff;">Logout</button>
+            <div style="margin: 28px 0 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <label for="hueRotateSlider" style="font-size: 22px; color: #8cff9a; margin-bottom: 10px;">Adjust App Hue</label>
+              <input type="range" id="hueRotateSlider" min="0" max="360" value="0" style="width: 320px; height: 32px; margin-bottom: 18px;">
+              <span id="hueRotateValue" style="color: #8cff9a; font-size: 28px; margin-bottom: 18px; display: block;">0°</span>
+              <button class="budui-action-btn" id="resetHueBtn" style="font-size: 20px; padding: 10px 32px;">Reset Hue</button>
+            </div>
+            <!-- Inline warning message area at the bottom of the profile accordion -->
+            <div id="buduiWarningMsg" style="display:none; color:#ff3939; background:rgba(255,57,57,0.08); border:1px solid #ff3939; border-radius:6px; padding:8px 12px; margin:18px auto 0 auto; max-width:400px; text-align:center; font-size:16px;"></div>
+          </div>
+        </div>
+    </div>
+</div>
+
+
+    <div id="dashboardContent"></div>
+
+
+  <div class="pip-status">
+    <span class="pip-dots"></span><br>
+    Initialized.30.THWIN.BUDUI
+  </div>
+
+</div>
+
+
+
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBe_0oWH02bKiXSpOz3IlHtYuJSbMesVz0",
+    authDomain: "activlog-data.firebaseapp.com",
+    projectId: "activlog-data",
+    storageBucket: "activlog-data.firebasestorage.app",
+    messagingSenderId: "133406753052",
+    appId: "1:133406753052:web:7235a682366924334d3ad9",
+    measurementId: "G-BRVDJ841WX"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  window.auth = firebase.auth();
+  window.db = firebase.firestore();
+</script>
+</script>
+
+
+
+  <script>
+    function buduiToggleAccordion(btn) {
+      const panel = btn.nextElementSibling;
+      if (!panel) return;
+      const isOpen = panel.style.display === 'block';
+      // If already open, close it and remove selected visual
+      if (isOpen) {
+        panel.style.display = 'none';
+        btn.classList.remove('open');
+        // Also close all nested child panels and buttons inside
+        panel.querySelectorAll('.budui-accordion-panel').forEach(p => p.style.display = 'none');
+        panel.querySelectorAll('.budui-accordion-btn').forEach(b => b.classList.remove('open'));
+        return;
+      }
+      // Only close sibling panels (same parent container), not all panels globally
+      const parent = btn.parentElement;
+      if (parent) {
+        parent.querySelectorAll(':scope > .budui-accordion-panel').forEach(p => {
+          p.style.display = 'none';
+          // Also close any nested panels inside siblings being closed
+          p.querySelectorAll('.budui-accordion-panel').forEach(nested => nested.style.display = 'none');
+          p.querySelectorAll('.budui-accordion-btn').forEach(nestedBtn => nestedBtn.classList.remove('open'));
+        });
+        parent.querySelectorAll(':scope > .budui-accordion-btn').forEach(b => b.classList.remove('open'));
+      }
+      // Open this panel and set selected visual
+      panel.style.display = 'block';
+      btn.classList.add('open');
+      // Scroll button to top of viewport
+      btn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Auto-calculate total for each row
+    document.addEventListener('input', function(e) {
+      if (e.target.classList.contains('budui-half')) {
+        const row = e.target.closest('.budui-row');
+        if (!row) return;
+        const halves = row.querySelectorAll('.budui-half');
+        const total = row.querySelector('.budui-total');
+        if (halves.length === 2 && total) {
+          const v1 = parseFloat(halves[0].value) || 0;
+          const v2 = parseFloat(halves[1].value) || 0;
+          total.value = (v1 + v2).toFixed(2);
+        }
+      }
+    });
+  </script>
+
+
+
+</body>
+</html>

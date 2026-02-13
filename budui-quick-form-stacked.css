@@ -1,0 +1,13 @@
+.budui-quick-form .budui-form-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.budui-quick-form .budui-input,
+.budui-quick-form .budui-action-btn {
+  width: 100%;
+  box-sizing: border-box;
+}
