@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=VT323&family=Quicksand:wght@400;500;600&family=Fredoka+One&family=Press+Start+2P&family=Creepster&family=Nosifer&family=Roboto:wght@400;500&display=swap');
 
 /* Root font size - applies theme variable globally */
@@ -837,6 +836,15 @@ input.budui-total:not([readonly]):not([disabled]) {
   font-family: var(--font-primary) !important;
   border-radius: var(--border-radius-md) !important;
   backdrop-filter: blur(4px);
+}
+.pipboy-theme {
+  box-shadow: none !important;
+}
+
+.pipboy-theme::before,
+.pipboy-theme::after {
+  background: none !important;
+  box-shadow: none !important;
 }
 
 /* === STRANGER THINGS: Retro blocky 80s style === */
@@ -1949,8 +1957,7 @@ input, .pipboy-theme input {
   margin: 0 auto;   /* Center horizontally */
   min-height: 100vh;
   border: none !important;
-  /*filter: brightness(1.08) drop-shadow(0 0 8px var(--color-accent-mid));*/
-
+  box-shadow: none !important;
 }
 
 /* Pip-Boy background grid / lines */
@@ -1969,15 +1976,6 @@ input, .pipboy-theme input {
   opacity: 0.25;
   z-index: 9996; /* below vignette and sweep */
   border: none !important;
-}
-
-/* Vertical refresh sweep */
-body.pipboy-theme::before {
-  content: none !important;
-  background: none !important;
-  animation: none !important;
-  border: none !important;
-  box-shadow: none !important;
 }
 
 
@@ -2007,6 +2005,8 @@ body.pipboy-theme::before {
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* Individual bouncing bubbles */
@@ -2169,7 +2169,7 @@ body.pipboy-theme::before {
 /* Thicker Pip-Boy health bar */
 #healthBarContainer {
   background: var(--color-bg-panel-80); /* darker Pip-Boy green/black */
-  border: 3px solid var(--color-accent-mid);         /* glowing border */
+  border: 3px solid var(--color-accent-mid);          glowing border */
   box-shadow: 0 0 10px var(--color-accent-mid);      /* glow */
   border-radius: 4px;
 
@@ -2262,10 +2262,10 @@ body.pipboy-theme::before {
 /* Terminal */
 .pipboy-theme #terminal {
   position: relative;
-  border: 3px solid var(--color-accent-mid);
-  box-shadow: none !important;
+  border: none !important;
   border-radius: 8px;
   background: var(--color-bg-main) !important;
+  box-shadow: none !important;
   padding: 20px;
 }
 
@@ -2633,8 +2633,6 @@ body.modal-open {
 }
 
 
-/*8cff9a//4cff6a//00cc55/*/
-
 /* LOGIN FORM LAYOUT OVERRIDES */
 /* Remove green border and glow from login panel */
 #loginView {
@@ -2692,11 +2690,8 @@ body.modal-open {
   justify-content: center;
 }
 
-.pipboy-theme {
-  box-shadow: none !important;
-}
-.pipboy-theme::before,
-.pipboy-theme::after {
-  background: none !important;
-  box-shadow: none !important;
+/* Remove all filter and drop-shadow effects from pipboy-theme and terminal */
+.pipboy-theme, .pipboy-theme * {
+  filter: none !important;
+
 }
