@@ -41,6 +41,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BUDGET UI</title>
+  <!-- Add Comic Neue web font for Comic Sans-like appearance on all devices -->
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="pipboybNG.css">
   <link rel="stylesheet" href="budui-quick-form-stacked.css">
@@ -742,7 +743,7 @@
         <button class="budui-accordion-btn main-cat" id="spendingCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
         Spending
         </button>
-        <div class="budui-accordion-panel">
+        <div class="budui-accordion-panel" id="spendingAccordionPanel">
             <button class="budui-action-btn" id="addSpendingBtn">Add Spending</button>
             <div id="spendingList" class="budui-list-placeholder">No spending entries yet.</div>
             <div class="budui-list-total" id="spendingPanelTotal">Total: $0.00</div>
@@ -867,4 +868,3 @@
 
 </body>
 </html>
-
