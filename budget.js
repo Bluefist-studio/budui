@@ -1,3 +1,101 @@
+// --- Theme Selector Logic ---
+document.addEventListener('DOMContentLoaded', function() {
+  const themes = [
+    { name: 'Pipboy', value: '' },
+    { name: 'Bubble', value: 'winter' },
+    { name: 'Comic', value: 'minimal' },
+    // { name: 'Halloween', value: 'halloween' },
+    { name: 'Google', value: 'google' },
+    // { name: 'Synthwave', value: 'synthwave' },
+  ];
+  const themeSelector = document.getElementById('themeSelector');
+  const leftArrow = document.getElementById('themeLeftArrow');
+  const rightArrow = document.getElementById('themeRightArrow');
+  const themeName = document.getElementById('themeName');
+  const body = document.body;
+  let currentThemeIdx = 0;
+
+  // Load from localStorage if available
+  function getSavedThemeIdx() {
+    try {
+      const saved = localStorage.getItem('budui_theme_idx');
+      if (saved !== null) {
+        const idx = parseInt(saved, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < themes.length) return idx;
+      }
+    } catch (e) {}
+    return 0;
+  }
+
+  function saveThemeIdx(idx) {
+    try { localStorage.setItem('budui_theme_idx', idx); } catch (e) {}
+  }
+
+  function applyTheme(idx) {
+    const theme = themes[idx];
+    // Remove any previous data-theme
+    if (theme.value) {
+      body.setAttribute('data-theme', theme.value);
+    } else {
+      body.removeAttribute('data-theme');
+    }
+    themeName.textContent = theme.name;
+    currentThemeIdx = idx;
+    saveThemeIdx(idx);
+
+    // Debug info
+    const debug = document.getElementById('themeDebug');
+    if (debug) {
+      debug.textContent = `Theme: ${theme.name} (${theme.value || 'classic'})`;
+    }
+
+    // --- Re-run theme-specific effects (like bubbles) ---
+    if (typeof window.buduiThemeEffectReload === 'function') {
+      window.buduiThemeEffectReload();
+    }
+  }
+// --- Theme effect reload hook ---
+window.buduiThemeEffectReload = function() {
+  // Remove any existing bubble containers
+  document.querySelectorAll('.bubble-container').forEach(el => el.remove());
+  // Cancel any running animation
+  if (window.animationId) {
+    cancelAnimationFrame(window.animationId);
+    window.animationId = null;
+  }
+  // Clear bubbles array and container if available
+  if (window.bubbles && Array.isArray(window.bubbles)) {
+    window.bubbles.length = 0;
+  }
+  if (typeof window.container !== 'undefined') {
+    window.container = null;
+  }
+  // Only apply bubble effect if winter theme is active
+  const themeEl = document.body.classList.contains('pipboy-theme') ? document.body : document.querySelector('.pipboy-theme');
+  if (!themeEl) return;
+  const isWinter = themeEl.getAttribute('data-theme') === 'winter';
+  if (!isWinter) return;
+  if (typeof createBubbles === 'function') createBubbles();
+  if (typeof animateBubbles === 'function') animateBubbles();
+};
+
+  function nextTheme() {
+    let idx = (currentThemeIdx + 1) % themes.length;
+    applyTheme(idx);
+  }
+  function prevTheme() {
+    let idx = (currentThemeIdx - 1 + themes.length) % themes.length;
+    applyTheme(idx);
+  }
+
+  if (themeSelector && leftArrow && rightArrow && themeName) {
+    // Initialize
+    let idx = getSavedThemeIdx();
+    applyTheme(idx);
+    leftArrow.addEventListener('click', prevTheme);
+    rightArrow.addEventListener('click', nextTheme);
+  }
+});
 // Ensure Income total paid status is updated live on value or paid status change
 document.addEventListener('input', function(e) {
   if (e.target.closest('#incomeCategoryBtn + .budui-accordion-panel')) {
@@ -138,11 +236,17 @@ function showWarningMsg(msg, actionCallback) {
   confirmBtn.textContent = 'Confirm';
   confirmBtn.className = 'budui-action-btn';
   confirmBtn.style.marginTop = '10px';
-  confirmBtn.onclick = function(e) {
+  confirmBtn.onclick = async function(e) {
+    spendingReady = false;
     e.stopPropagation();
     warnDiv.style.display = 'none';
     warnDiv.innerHTML = '';
     if (typeof actionCallback === 'function') actionCallback();
+    await firebase.firestore().collection('users').doc(uid).collection('budget').doc('spending').delete();
+    spendingEntries = [];
+    if (typeof renderSpendingList === 'function') renderSpendingList();
+    if (typeof loadSpendingFromFirestore === 'function') await loadSpendingFromFirestore();
+    spendingReady = true;
   };
   warnDiv.appendChild(confirmBtn);
   warnDiv.style.display = 'block';
@@ -196,19 +300,12 @@ document.addEventListener("DOMContentLoaded", function() {
   const profilePanel = document.getElementById("profileAccordionPanel");
   if (profilePanel) profilePanel.style.display = "none";
   const resetPaidStatusBtn = document.getElementById("resetPaidStatusBtn");
+  const deleteAllSpendingBtn = document.getElementById("deleteAllSpendingBtn");
   const logoutBtn = document.getElementById("logoutBtn");
 
-  // Add: Toggle UI for bubble interaction
-  if (profilePanel && !document.getElementById('toggleBubbleUiBtn')) {
-    const toggleBtn = document.createElement('button');
-    toggleBtn.id = 'toggleBubbleUiBtn';
-    toggleBtn.className = 'budui-action-btn';
-    toggleBtn.textContent = 'Bubble';
-    toggleBtn.style.margin = '10px 0 20px 0';
-    toggleBtn.style.display = 'block';
-    toggleBtn.style.marginLeft = 'auto';
-    toggleBtn.style.marginRight = 'auto';
-    profilePanel.appendChild(toggleBtn)
+  // Attach Screen Saver (Bubble UI) logic to static button
+  const toggleBtn = document.getElementById('toggleBubbleUiBtn');
+  if (toggleBtn) {
     let uiHidden = false;
     let prevMinHeight = null;
     let returnBtn = null;
@@ -273,59 +370,153 @@ document.addEventListener("DOMContentLoaded", function() {
 
   if (resetPaidStatusBtn) {
     resetPaidStatusBtn.onclick = function() {
-      showWarningMsg(
-        "Are you sure you want to reset all paid status?",
-        async function() {
-          // Remove paid status from all relevant elements
-          document.querySelectorAll('.budui-paid').forEach(el => el.classList.remove('budui-paid'));
-          if (typeof updateBudgetAccordionTotals === 'function') updateBudgetAccordionTotals();
-          // Save all category data to Firestore after reset
-          if (typeof saveIncomeToFirestore === 'function') await saveIncomeToFirestore();
-          if (typeof saveHousingToFirestore === 'function') await saveHousingToFirestore();
-          if (typeof saveTransportToFirestore === 'function') await saveTransportToFirestore();
-          if (typeof saveMultiMediaToFirestore === 'function') await saveMultiMediaToFirestore();
-          if (typeof saveSavingsToFirestore === 'function') await saveSavingsToFirestore();
-          if (typeof saveOthersToFirestore === 'function') await saveOthersToFirestore();
-          // Force update of paid status visuals for Income totals
-          const incomePanel = document.getElementById('incomeCategoryBtn')?.nextElementSibling;
-          if (incomePanel) {
-            incomePanel.querySelectorAll('.budui-block').forEach(block => {
-              const first = block.querySelectorAll('.budui-half')[0];
-              const second = block.querySelectorAll('.budui-half')[1];
-              const totalField = block.querySelector('.budui-total');
-              if (first && second && totalField) {
-                // Re-evaluate paid status for total
-                const firstFilled = first.value.trim() !== '';
-                const secondFilled = second.value.trim() !== '';
-                const firstPaid = first.classList.contains('budui-paid');
-                const secondPaid = second.classList.contains('budui-paid');
-                let paid = false;
-                if ((firstFilled && secondFilled && firstPaid && secondPaid) ||
-                    (firstFilled && firstPaid && !secondFilled) ||
-                    (secondFilled && secondPaid && !firstFilled)) {
-                  paid = true;
-                }
-                if (paid) {
-                  totalField.classList.add('budui-paid');
-                } else {
-                  totalField.classList.remove('budui-paid');
-                }
+      const warnDiv = document.getElementById('buduiWarningMsg');
+      if (!warnDiv) return;
+      // Position warning directly under the button
+      const btnRect = resetPaidStatusBtn.getBoundingClientRect();
+      warnDiv.style.position = '';
+      warnDiv.style.left = '';
+      warnDiv.style.top = '';
+      warnDiv.style.width = '';
+      warnDiv.style.zIndex = '';
+      warnDiv.style.display = 'block';
+      warnDiv.style.cursor = 'default';
+      warnDiv.style.background = 'rgba(30, 40, 60, 0.97)';
+      warnDiv.style.borderRadius = '8px';
+      warnDiv.style.boxShadow = '0 2px 12px rgba(0,0,0,0.18)';
+      warnDiv.style.padding = '16px 12px';
+      warnDiv.style.textAlign = 'center';
+      warnDiv.style.margin = '16px auto';
+      warnDiv.style.maxWidth = '340px';
+      warnDiv.innerHTML = "Are you sure you want to reset all paid status? This will not delete any values, but will mark all items as unpaid. You can then mark them as paid again as needed. This action cannot be undone.<br>";
+      resetPaidStatusBtn.parentNode.insertBefore(warnDiv, resetPaidStatusBtn.nextSibling);
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'Confirm';
+      confirmBtn.className = 'budui-action-btn';
+      confirmBtn.style.marginTop = '10px';
+      confirmBtn.onclick = async function(e) {
+        e.stopPropagation();
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+        // Remove paid status from all relevant elements
+        document.querySelectorAll('.budui-paid').forEach(el => el.classList.remove('budui-paid'));
+        if (typeof updateBudgetAccordionTotals === 'function') updateBudgetAccordionTotals();
+        // Save all category data to Firestore after reset
+        if (typeof saveIncomeToFirestore === 'function') await saveIncomeToFirestore();
+        if (typeof saveHousingToFirestore === 'function') await saveHousingToFirestore();
+        if (typeof saveTransportToFirestore === 'function') await saveTransportToFirestore();
+        if (typeof saveMultiMediaToFirestore === 'function') await saveMultiMediaToFirestore();
+        if (typeof saveSavingsToFirestore === 'function') await saveSavingsToFirestore();
+        if (typeof saveOthersToFirestore === 'function') await saveOthersToFirestore();
+        // Force update of paid status visuals for Income totals
+        const incomePanel = document.getElementById('incomeCategoryBtn')?.nextElementSibling;
+        if (incomePanel) {
+          incomePanel.querySelectorAll('.budui-block').forEach(block => {
+            const first = block.querySelectorAll('.budui-half')[0];
+            const second = block.querySelectorAll('.budui-half')[1];
+            const totalField = block.querySelector('.budui-total');
+            if (first && second && totalField) {
+              // Re-evaluate paid status for total
+              const firstFilled = first.value.trim() !== '';
+              const secondFilled = second.value.trim() !== '';
+              const firstPaid = first.classList.contains('budui-paid');
+              const secondPaid = second.classList.contains('budui-paid');
+              let paid = false;
+              if ((firstFilled && secondFilled && firstPaid && secondPaid) ||
+                  (firstFilled && firstPaid && !secondFilled) ||
+                  (secondFilled && secondPaid && !firstFilled)) {
+                paid = true;
               }
-            });
-          }
+              if (paid) {
+                totalField.classList.add('budui-paid');
+              } else {
+                totalField.classList.remove('budui-paid');
+              }
+            }
+          });
         }
-      );
+        window.location.reload();
+      };
+      warnDiv.appendChild(confirmBtn);
+      setTimeout(() => {
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+      }, 10000);
+    };
+  }
+
+  // Add confirmation logic for deleteAllSpendingBtn
+  if (deleteAllSpendingBtn) {
+    deleteAllSpendingBtn.onclick = function() {
+      const warnDiv = document.getElementById('buduiWarningMsg');
+      if (!warnDiv) return;
+      warnDiv.style.position = '';
+      warnDiv.style.left = '';
+      warnDiv.style.top = '';
+      warnDiv.style.width = '';
+      warnDiv.style.zIndex = '';
+      warnDiv.style.display = 'block';
+      warnDiv.style.cursor = 'default';
+      warnDiv.style.background = 'rgba(30, 40, 60, 0.97)';
+      warnDiv.style.borderRadius = '8px';
+      warnDiv.style.boxShadow = '0 2px 12px rgba(0,0,0,0.18)';
+      warnDiv.style.padding = '16px 12px';
+      warnDiv.style.textAlign = 'center';
+      warnDiv.style.margin = '16px auto';
+      warnDiv.style.maxWidth = '340px';
+      warnDiv.innerHTML = "Are you sure you want to delete ALL spending entries? This will permanently delete all spending data. This action cannot be undone.<br>";
+      deleteAllSpendingBtn.parentNode.insertBefore(warnDiv, deleteAllSpendingBtn.nextSibling);
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'Confirm';
+      confirmBtn.className = 'budui-action-btn';
+      confirmBtn.style.marginTop = '10px';
+      confirmBtn.onclick = async function(e) {
+        e.stopPropagation();
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+        // Delete spending document from Firestore
+        try {
+          if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const user = firebase.auth().currentUser;
+            if (user) {
+              const uid = user.uid;
+              // Use the same path as saveSpendingToFirestore: users/{uid}/budget/spending
+              const spendingDocRef = firebase.firestore().collection('users').doc(uid).collection('budget').doc('spending');
+              await spendingDocRef.delete();
+              // Immediately recreate with empty entries to guarantee wipe
+              await spendingDocRef.set({ entries: [] });
+              // Clear local spendingEntries and UI
+              spendingEntries = [];
+              let spendingReady = true;
+              if (typeof renderSpendingList === 'function') renderSpendingList();
+              const spendingList = document.getElementById('spendingList');
+              if (spendingList) spendingList.innerHTML = 'No spending entries yet.';
+              const spendingPanelTotal = document.getElementById('spendingPanelTotal');
+              if (spendingPanelTotal) spendingPanelTotal.textContent = 'Total: $0.00';
+              window.location.reload();
+            } else {
+              alert('No user is currently signed in.');
+            }
+          } else {
+            alert('Firestore is not available.');
+          }
+        } catch (err) {
+          alert('Error deleting spending data: ' + err.message);
+        }
+      };
+      warnDiv.appendChild(confirmBtn);
+      setTimeout(() => {
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+      }, 10000);
     };
   }
   if (logoutBtn) {
-    logoutBtn.onclick = function() {
-      showWarningMsg(
-        "Are you sure you want to logout?",
-        function() {
+      logoutBtn.onclick = function() {
+        setupDeleteConfirm(logoutBtn, function() {
           auth.signOut();
-        }
-      );
-    };
+        });
+      };
   }
 });
 // ===============================
@@ -344,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
     lastHue = val;
     hueValue.textContent = val + '°';
     if (pipboyTheme) {
-      let baseFilter = 'brightness(1.08) drop-shadow(0 0 8px #4cff6a) blur(0.5px)';
+      let baseFilter = 'brightness(1.08)';
       pipboyTheme.style.filter = baseFilter + ' hue-rotate(' + val + 'deg)';
     }
     if (save) {
@@ -630,16 +821,7 @@ function updateSummaryTotals() {
     console.error('[updateSummaryTotals] Calculation error:', e, { incomeForecast, expensesForecast, incomeCurrent, expensesCurrent });
   }
 
-  // Debug: Log remaining forecast and its components
-  console.debug('[DEBUG] Remaining Forecast:', {
-    incomeForecast,
-    expensesForecast,
-    remainingForecast,
-    incomeCurrent,
-    expensesCurrent,
-    remainingCurrent,
-    spendingValue
-  });
+  // ...existing code...
 
   // Update summary bar
   const buduiIncome = document.getElementById('buduiIncome');
@@ -898,19 +1080,20 @@ document.addEventListener("DOMContentLoaded", function() {
     await db.collection('users').doc(user.uid).collection('budget').doc('spending').set({ entries: spendingEntries });
   }
 
-  async function loadSpendingFromFirestore() {
+async function loadSpendingFromFirestore() {
+    spendingReady = false;
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) { spendingReady = true; return; }
     const doc = await db.collection('users').doc(user.uid).collection('budget').doc('spending').get();
-    if (!doc.exists) return;
+    if (!doc.exists) { spendingReady = true; return; }
     const { entries } = doc.data();
     if (Array.isArray(entries)) {
       spendingEntries = entries;
       renderSpendingList();
-      // Ensure paid status visuals update after spending loads
       if (typeof updateBudgetAccordionTotals === 'function') updateBudgetAccordionTotals();
     }
-  }
+    spendingReady = true;
+}
   let editingSpendingIndex = null;
 
   // --- Spending Modal Logic ---
@@ -996,32 +1179,9 @@ document.addEventListener("DOMContentLoaded", function() {
     } else {
       spendingList.innerHTML = '';
       
-      // Count occurrences of each description to find most frequent
-      const descCounts = {};
-      spendingEntries.forEach(entry => {
-        const desc = (entry.desc || '').toLowerCase().trim();
-        descCounts[desc] = (descCounts[desc] || 0) + 1;
-      });
-      
-      // Find the most frequently repeated description (must appear more than once)
-      let mostFrequentDesc = null;
-      let maxCount = 1; // Only highlight if appears more than once
-      for (const [desc, count] of Object.entries(descCounts)) {
-        if (count > maxCount) {
-          maxCount = count;
-          mostFrequentDesc = desc;
-        }
-      }
-      
       spendingEntries.forEach((entry, idx) => {
         const div = document.createElement('div');
         div.className = 'budui-list-entry';
-        
-        // Apply glow to most frequently repeated entry
-        const entryDesc = (entry.desc || '').toLowerCase().trim();
-        if (mostFrequentDesc && entryDesc === mostFrequentDesc) {
-          div.classList.add('recurring-entry');
-        }
         
         div.style.cursor = 'pointer';
         div.onclick = () => openSpendingModal('edit', idx);
@@ -1067,8 +1227,14 @@ document.querySelectorAll('.budui-accordion-btn.main-cat').forEach(btn => {
 });
 
   if (addSpendingBtn) {
-    addSpendingBtn.onclick = () => openSpendingModal('add');
-  }
+    addSpendingBtn.onclick = () => {
+      if (!spendingReady) {
+        showWarningMsg('Please wait, loading latest spending data...');
+        return;
+      }
+      openSpendingModal('add');
+    };
+}
   if (closeEntryModal) {
     closeEntryModal.onclick = closeSpendingModal;
   }
@@ -1181,11 +1347,11 @@ document.querySelectorAll('.budui-accordion-btn.main-cat').forEach(btn => {
   const MIN_MOMENTUM = 0.22; // Minimum momentum (speed * mass)
   const BUBBLE_PUSH = 0; // Disruption disabled
 
-  let bubbles = [];
-  let container = null;
-  let animationId = null;
+  window.bubbles = [];
+  window.container = null;
+  window.animationId = null;
 
-  function createBubbles() {
+  window.createBubbles = function createBubbles() {
     const terminal = document.getElementById('terminal');
     if (!terminal) return;
     
@@ -1293,7 +1459,7 @@ document.querySelectorAll('.budui-accordion-btn.main-cat').forEach(btn => {
     });
   }
 
-  function animateBubbles() {
+  window.animateBubbles = function animateBubbles() {
     const rect = container.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
@@ -1326,32 +1492,11 @@ document.querySelectorAll('.budui-accordion-btn.main-cat').forEach(btn => {
   }
   
   function init() {
-        // Touchend event: impart momentum on release
-        window.addEventListener('touchend', function(e) {
-          if (!lastTouch) return;
-          // Use the last known movement direction and speed
-          // If touchend has changed position, use that
-          let x = lastTouch.x, y = lastTouch.y;
-          if (e.changedTouches && e.changedTouches.length) {
-            x = e.changedTouches[0].clientX;
-            y = e.changedTouches[0].clientY;
-          }
-          const dx = x - lastTouch.x;
-          const dy = y - lastTouch.y;
-          const dt = Math.max(1, Date.now() - lastTouch.t);
-          const mag = Math.sqrt(dx*dx + dy*dy);
-          if (mag < 2) return; // Ignore tiny moves
-          const angle = Math.atan2(dy, dx);
-          const force = Math.min(4, mag * 0.08 * (12 / dt)); // Much slower, similar to tap disruption
-          bubbles.forEach(b => {
-            const massFactor = 0.7 + 0.3 * (b.size - MIN_SIZE) / (MAX_SIZE - MIN_SIZE); // Range: 0.7-1.0
-            b.vx += Math.cos(angle) * force / massFactor;
-            b.vy += Math.sin(angle) * force / massFactor;
-          });
-          skipNextTapDisturb = true;
-          lastTouch = null;
-        }, { passive: true });
-    if (!document.body.classList.contains('pipboy-theme')) return;
+    // Only apply bubble effect if winter theme is active
+    const themeEl = document.body.classList.contains('pipboy-theme') ? document.body : document.querySelector('.pipboy-theme');
+    if (!themeEl) return;
+    const isWinter = themeEl.getAttribute('data-theme') === 'winter';
+    if (!isWinter) return;
     createBubbles();
     animateBubbles();
     
