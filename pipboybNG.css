@@ -528,20 +528,20 @@ input.budui-total:not([readonly]):not([disabled]) {
   
   /* === ACCENT COLORS (GOOGLE BLUE) === */
   --color-accent: #8ab4f8;
-  --color-accent-strong: #4285f4;
+  --color-accent-strong: #8ab4f8;
   --color-accent-mid: #5e97f6;
   --color-accent-bar: #5e97f6;
   --color-accent-bar-bg: #5e97f622; /* blue with transparency for bar backgrounds */
   --color-accent-paid: #34a853;
   --color-accent-income: #81c995;
-  --color-accent-summary: #669df6;
+  --color-accent-summary: #fbbc0499;
   --color-pipboy-theme: #aecbfa;
   
   /* === GOOGLE RED/YELLOW ACCENT === */
   --color-cyan: #fbbc04;
   --color-cyan-glow: #fbbc0499;
-  --color-cyan-light: #fbbc0422;
-  --color-cyan-mid: #fbbc0444;
+  --color-cyan-light: #5e97f622;
+  --color-cyan-mid: #5e97f644;
   
   /* === GLOW & SHADOW COLORS === */
   --color-paid-glow: #34a85366;
@@ -571,7 +571,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   /* === TYPOGRAPHY (Google Sans style) === */
   --font-primary: "Google Sans", "Roboto", "Segoe UI", sans-serif;
   --font-heading: "Google Sans", "Product Sans", sans-serif;
-  --font-size-base: 16px;
+  --font-size-base: 16px; /* Summary font-size*/
+  --logo-font-size: 50px;
   --letter-spacing: 0.25px;
   
   /* === BORDERS & SHAPES (Material Design) === */
@@ -584,10 +585,90 @@ input.budui-total:not([readonly]):not([disabled]) {
   
   /* === BUTTON STYLES (Material pill buttons) === */
   --btn-padding: 10px 24px;
-  --btn-font-size: 14px;
+  --btn-font-size: 18px; /*Expense panel button font size*/
   --btn-transform: none;
   --btn-text-transform: none;
+
+  /* === LOCK ICON STYLES === */
+  --lock-icon-size: 20px;
+  --lock-icon-top: 0.25em;
+  --lock-icon-right: 0.5em;
+
+  /* === ACCORDION & LIST FONT SIZES === */
+  --accordion-main-font-size: 22px; /* Main category accordion buttons */
+  --accordion-cat-font-size: 20px; /* Sub-category accordion buttons */
+  --subcat-total-font-size: 18px;
+  --edit-font-size: 15px; /* Edit fields font size */
+  --list-entry-font-size: 14px; /* List entries font size */
+  --input-font-size: 16px; /* Not sure */
+  --total-font-size: 18px; /* Spending Total font size */
 }
+
+/* === GOOGLE: Clean Material Design buttons === */
+[data-theme="google"] button:not(.budui-lock-btn),
+[data-theme="google"] .budui-action-btn,
+[data-theme="google"] .budui-accordion-btn {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-lg) !important;
+  border-width: var(--border-width) !important;
+  font-weight: 500;
+  box-shadow: 0 0 4px #5e97f6, 0 0 2px #aecbfa inset !important;
+  text-shadow: none !important;
+  transition: box-shadow 0.2s, background 0.2s;
+  z-index: 2;
+  position: relative;
+}
+[data-theme="google"] button:not(.budui-lock-btn):hover,
+[data-theme="google"] .budui-action-btn:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 8px 16px rgba(0,0,0,0.2);
+}
+[data-theme="google"] input,
+[data-theme="google"] select {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--border-radius-sm) !important;
+  border-width: var(--border-width) !important;
+  box-shadow: none;
+  border-bottom: 2px solid var(--color-accent-mid);
+}
+[data-theme="google"] input:focus,
+[data-theme="google"] select:focus {
+  border-bottom-color: var(--color-accent-strong);
+  box-shadow: 0 0 8px #5e97f6, 0 0 2px #aecbfa inset !important;
+}
+
+[data-theme="google"] .budui-accordion-col {
+  gap: 0px !important;
+}
+
+[data-theme="google"] .budui-accordion-panel{
+  margin-top: -12px;
+  border-width: 0px 1px 1px 1px !important;
+  border-color: var(--color-accent-strong);
+  box-shadow: 0 1px 0 var(--color-accent-strong);
+  z-index: 1;
+  position: relative;
+}
+
+[data-theme="google"] .budui-summary-label {
+  font-size: 12px !important;
+  font-weight: 500;
+}
+[data-theme="google"] .budui-summary-value {
+  font-size: 24px !important;
+  font-weight: 500;
+}
+
+[data-theme="google"] .budui-progress-labels {
+  color: var(--color-cyan) !important;
+}
+[data-theme="google"] .budui-progress-values {
+  color: var(--color-cyan) !important;
+}
+
+[data-theme="google"] .budui-edit-category-label {
+  color: var(--color-cyan) !important;
+}
+
 
 /* =============================================
    THEME: SYNTHWAVE
@@ -651,6 +732,9 @@ input.budui-total:not([readonly]):not([disabled]) {
   
   /* === UTILITY === */
   --color-white: #fff;
+
+  /* === Panel border === */
+  --border-width-panel: 3px;
   
   /* === TYPOGRAPHY === */
   --font-primary: "VT323", monospace;
@@ -781,8 +865,8 @@ input.budui-total:not([readonly]):not([disabled]) {
     font-weight: bolder !important;
   }
 
-  [data-theme="minimal"] .ascii-logo * {    
-    font-weight: bold !important;
+  [data-theme="minimal"] .ascii-logo {    
+    font-weight: 900 !important;
   }
 
   [data-theme="minimal"] button:not(.budui-lock-btn),
@@ -831,12 +915,12 @@ input.budui-total:not([readonly]):not([disabled]) {
     font-size: 17px !important;
   }
 
-[data-theme="minimal"] #helpReticleBtn,
-[data-theme="minimal"] .reticle-bottom-left,
-[data-theme="minimal"] .reticle-bottom-right {
-  color: #0057b8 !important;
-  background: #0057b8 !important;
-}
+  [data-theme="minimal"] #helpReticleBtn,
+  [data-theme="minimal"] .reticle-bottom-left,
+  [data-theme="minimal"] .reticle-bottom-right {
+    color: #0057b8 !important;
+    background: #0057b8 !important;
+  }
 
   [data-theme="minimal"] .budui-list-entry *,
   [data-theme="minimal"] .budui-list-entry.recurring-entry * {
@@ -922,35 +1006,7 @@ input.budui-total:not([readonly]):not([disabled]) {
   border-style: var(--border-style) !important;
 }
 
-/* === GOOGLE: Clean Material Design buttons === */
-[data-theme="google"] button:not(.budui-lock-btn),
-[data-theme="google"] .budui-action-btn,
-[data-theme="google"] .budui-accordion-btn {
-  font-family: var(--font-primary) !important;
-  border-radius: var(--border-radius-lg) !important;
-  border-width: var(--border-width) !important;
-  font-weight: 500;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.15);
-  text-shadow: none !important;
-  transition: box-shadow 0.2s, background 0.2s;
-}
-[data-theme="google"] button:not(.budui-lock-btn):hover,
-[data-theme="google"] .budui-action-btn:hover {
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4), 0 8px 16px rgba(0,0,0,0.2);
-}
-[data-theme="google"] input,
-[data-theme="google"] select {
-  font-family: var(--font-primary) !important;
-  border-radius: var(--border-radius-sm) !important;
-  border-width: var(--border-width) !important;
-  box-shadow: none;
-  border-bottom: 2px solid var(--color-accent-mid);
-}
-[data-theme="google"] input:focus,
-[data-theme="google"] select:focus {
-  border-bottom-color: var(--color-accent-strong);
-  box-shadow: 0 1px 0 var(--color-accent-strong);
-}
+
 
 /* === SYNTHWAVE: Neon glow pink/cyan === */
 [data-theme="synthwave"] button:not(.budui-lock-btn),
@@ -1187,6 +1243,8 @@ body, .pipboy-theme {
   border-radius: 10px;
   color: var(--color-pipboy-theme);
   box-shadow: 0 0 10px var(--color-cyan);
+  z-index: 1;
+  position: relative;
 }
 
 /* Action Buttons */
@@ -1234,13 +1292,13 @@ body, .pipboy-theme {
 #helpReticleBtn {
   position: relative;
   background: transparent;
-  color: var(--color-accent);
+  color: var(--color-cyan);
   border: none;
   font-family: "VT323", monospace;
   font-size: var(--btn-font-size, 22px);
   padding: 10px 16px;
   cursor: pointer;
-  text-shadow: 0 0 6px var(--color-accent);
+  text-shadow: 0 0 6px var(--color-cyan);
   box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.3), 0 0 14px 4px rgba(160, 216, 239, 0.2);
 }
 #helpReticleBtn::before,
@@ -1249,7 +1307,7 @@ body, .pipboy-theme {
   position: absolute;
   width: 12px;
   height: 2px;
-  background: var(--color-accent);
+  background: var(--color-cyan);
   box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.4);
 }
 #helpReticleBtn::before {
@@ -1267,7 +1325,7 @@ body, .pipboy-theme {
   position: absolute;
   width: 12px;
   height: 2px;
-  background: var(--color-accent);
+  background: var(--color-cyan);
   box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.4);
 }
 #helpReticleBtn span.reticle-bottom-left {
@@ -1281,7 +1339,7 @@ body, .pipboy-theme {
   transform: rotate(45deg);
 }
 #helpReticleBtn:hover {
-  color: var(--color-accent);
+  color: var(--color-cyan);
   text-shadow: 0 0 10px var(--color-accent-strong);
   box-shadow: 0 0 10px 3px rgba(160, 216, 239, 0.45), 0 0 18px 5px rgba(160, 216, 239, 0.3);
 }
@@ -1289,7 +1347,7 @@ body, .pipboy-theme {
 #helpReticleBtn:hover::after,
 #helpReticleBtn:hover span.reticle-bottom-left,
 #helpReticleBtn:hover span.reticle-bottom-right {
-  background: var(--color-accent);
+  background: var(--color-cyan);
   box-shadow: 0 0 10px 3px rgba(160, 216, 239, 0.5);
 }
 
@@ -1669,6 +1727,8 @@ body, .pipboy-theme {
 }
 .budui-accordion-btn {
   background: var(--color-bg-panel);
+  z-index: 1;
+  position: relative;
   color: var(--color-accent);
   border: 2px solid var(--color-accent-mid);
   border-radius: 4px;
@@ -2663,4 +2723,3 @@ body.modal-open {
   filter: none !important;
 
 }
-
