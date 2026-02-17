@@ -55,15 +55,13 @@
 <script src="transport.js"></script>
 
 
-<!-- <body class="pipboy-theme"> -->
-<body class="pipboy-theme" data-theme="winter">
-<!-- <body class="pipboy-theme" data-theme="stranger">
+<body class="pipboy-theme">
+<!-- <body class="pipboy-theme" data-theme="winter">
+<body class="pipboy-theme" data-theme="minimal">
+<body class="pipboy-theme" data-theme="stranger">
 <body class="pipboy-theme" data-theme="halloween">
 <body class="pipboy-theme" data-theme="google">
-<body class="pipboy-theme" data-theme="synthwave">
-<body class="pipboy-theme" data-theme="terminal">
-<body class="pipboy-theme" data-theme="ocean">
-<body class="pipboy-theme" data-theme="sunset"> -->
+<body class="pipboy-theme" data-theme="synthwave"> -->
 
 
 <div id="terminal" style="position: relative;">
@@ -750,18 +748,28 @@
         </div>
         <!-- PROFILE ACCORDION -->
         <button class="budui-accordion-btn main-cat" id="profileAccordionBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%; margin-top:18px;">
-          Profile
+          Settings <!-- Former Profile -->
         </button>
         <div class="budui-accordion-panel" id="profileAccordionPanel">
           <div style="padding: 18px 8px; text-align: center;">
-            <button class="budui-action-btn" id="resetPaidStatusBtn" style="margin-bottom: 16px;">Reset All Paid Status</button><br>
-            <button class="budui-action-btn" id="logoutBtn" style="background: #ff3939; color: #fff;">Logout</button>
-            <div style="margin: 28px 0 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-              <label for="hueRotateSlider" style="font-size: 22px; color: #8cff9a; margin-bottom: 10px;">Adjust App Hue</label>
-              <input type="range" id="hueRotateSlider" min="0" max="360" value="0" style="width: 320px; height: 32px; margin-bottom: 18px;">
-              <span id="hueRotateValue" style="color: #8cff9a; font-size: 28px; margin-bottom: 18px; display: block;">0°</span>
-              <button class="budui-action-btn" id="resetHueBtn" style="font-size: 20px; padding: 10px 32px;">Reset Hue</button>
+            <div style="filter: none !important;">
+              <button class="budui-action-btn" id="resetPaidStatusBtn" style="margin-bottom: 16px;">Reset All Paid Status</button>
+              <button id="deleteAllSpendingBtn" class="budui-action-btn" style="margin:10px 0 20px 0;display:block;margin-left:auto;margin-right:auto;">Delete All Spending</button>
+              <button class="budui-action-btn" id="logoutBtn" style="background: #ff3939; color: #fff;">Logout</button>
             </div>
+            <div style="margin: 28px 0 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <label for="hueRotateSlider" style="font-size: 22px; color: var(--color-accent); margin-bottom: 10px; display: inline-flex; align-items: center; gap: 12px;">Adjust App Hue <span id="hueRotateValue">0°</span></label>
+              <input type="range" id="hueRotateSlider" min="0" max="350" value="0" class="hue-slider" style="height: 32px; margin-bottom: 18px;">
+              
+              <!-- <button class="budui-action-btn" id="resetHueBtn" style="font-size: 20px; padding: 10px 32px;">Reset Hue</button> -->
+            </div>
+            <div id="themeSelector" style="display:flex; align-items:center; justify-content:center; gap:16px; margin:10px 0 20px 0;">
+              <button id="themeLeftArrow" class="budui-action-btn" style="padding: 6px 16px; font-size: 22px;">&#8592;</button>
+              <span id="themeName" style="min-width: 100px; text-align:center; font-size: 20px; color: var(--color-accent);">Theme</span>
+              <button id="themeRightArrow" class="budui-action-btn" style="padding: 6px 16px; font-size: 22px;">&#8594;</button>
+            </div>
+            <!-- <div id="themeDebug" style="text-align:center; color:#888; font-size:14px; margin-bottom:10px;"></div>-->
+            <button class="budui-action-btn" id="toggleBubbleUiBtn" style="margin:10px 0 20px 0;display:block;margin-left:auto;margin-right:auto;">Screen Saver</button>
             <!-- Inline warning message area at the bottom of the profile accordion -->
             <div id="buduiWarningMsg" style="display:none; color:#ff3939; background:rgba(255,57,57,0.08); border:1px solid #ff3939; border-radius:6px; padding:8px 12px; margin:18px auto 0 auto; max-width:400px; text-align:center; font-size:16px;"></div>
           </div>
@@ -775,7 +783,7 @@
 
   <div class="pip-status">
     <span class="pip-dots"></span><br>
-    Initialized.5.WINWO.BUDUI
+    Initialized.55.MUTH.BUDUI
   </div>
 
 </div>
