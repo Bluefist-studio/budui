@@ -737,8 +737,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   --color-white: #fff;
 
   /* === TYPOGRAPHY === */
-  --font-primary: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
-  --font-heading: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+  --font-primary: 'Comic Neue', "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+  --font-heading: 'Comic Neue', "Comic Sans MS", "Comic Sans", cursive, sans-serif;
   --font-size-base: 22px;
   --logo-font-size: 50px;
   --letter-spacing: 0.5px;
@@ -2663,3 +2663,4 @@ body.modal-open {
   filter: none !important;
 
 }
+
