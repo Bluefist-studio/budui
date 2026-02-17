@@ -43,6 +43,14 @@ body, .pipboy-theme {
   font-size: var(--accordion-cat-font-size, 22px) !important;
 }
 
+/* Responsive hue slider: always fits container */
+.hue-slider {
+  width: 90%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 /* Sub-category total spans inside accordion buttons */
 #housingCategoryTotalBtn,
 #transportCategoryTotalBtn,
@@ -152,6 +160,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   --color-accent: #8cff9a;
   --color-accent-strong: #00ff66;
   --color-accent-mid: #4cff6a;
+  --color-accent-bar: #4cff6a;
+  --color-accent-bar-bg: #4cff6a22; /* green with transparency for bar backgrounds */
   --color-accent-paid: #6aff6a;
   --color-accent-income: #aaffb8;
   --color-accent-summary: #00cc55;
@@ -191,7 +201,7 @@ input.budui-total:not([readonly]):not([disabled]) {
   /* === TYPOGRAPHY === */
   --font-primary: "VT323", monospace;
   --font-heading: "VT323", monospace;
-  --font-size-base: 18px;
+  --font-size-base: 24px;
   --logo-font-size: 64px;
   --letter-spacing: 1px;
   
@@ -205,7 +215,7 @@ input.budui-total:not([readonly]):not([disabled]) {
   
   /* === BUTTON STYLES === */
   --btn-padding: 14px 24px;
-  --btn-font-size: 22px;
+  --btn-font-size: 24px;
   --btn-transform: none;
   --btn-text-transform: none;
   
@@ -215,13 +225,14 @@ input.budui-total:not([readonly]):not([disabled]) {
   --lock-icon-right: 0.25em;
   
   /* === ACCORDION & LIST FONT SIZES === */
-  --accordion-main-font-size: 28px;
-  --accordion-cat-font-size: 22px;
-  --subcat-total-font-size: 24px;
-  --list-entry-font-size: 22px;
-  --input-font-size: 22px;
-  --edit-font-size: 22px;
-  --total-font-size: 22px;
+  --accordion-main-font-size: 24px;  /* Main category accordion buttons */
+  --accordion-cat-font-size: 24px;   /* Sub-category accordion buttons */
+  --subcat-total-font-size: 20px;
+  --edit-font-size: 18px;
+  /* --list-entry-font-size-spendings: 18px; === */
+  --list-entry-font-size: 24px;      /* List entries */
+  --input-font-size: 20px;           /* Input fields */
+  --total-font-size: 24px;           /* Totals display */
 }
 
 /* =============================================
@@ -249,6 +260,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   --color-accent: #a0d8ef;
   --color-accent-strong: #00bfff;
   --color-accent-mid: #6ec6ff;
+  --color-accent-bar: #6ec6ff;
+  --color-accent-bar-bg: #6ec6ff22; /* blue with transparency for bar backgrounds */
   --color-accent-paid: #80dfff;
   --color-accent-income: #c0e8ff;
   --color-accent-summary: #5cb8e6;
@@ -278,7 +291,7 @@ input.budui-total:not([readonly]):not([disabled]) {
   
   /* === STATUS COLORS === */
   --color-error: #ff6b6b;
-  --color-health-mid: #ffe066;
+  --color-health-mid: #ffd666;
   --color-health-low: #ff8c66;
   --color-neon: #00e5ff;
   
@@ -349,6 +362,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   --color-accent: #ff4444;
   --color-accent-strong: #ff0000;
   --color-accent-mid: #cc3333;
+  --color-accent-bar: #cc3333;
+  --color-accent-bar-bg:  #cc333322; /* red with transparency for bar backgrounds */
   --color-accent-paid: #ff6b6b;
   --color-accent-income: #ffaa88;
   --color-accent-summary: #e63939;
@@ -431,6 +446,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   --color-accent: #ff9933;
   --color-accent-strong: #ff6600;
   --color-accent-mid: #e67300;
+  --color-accent-bar: #e67300;
+  --color-accent-bar-bg: #e6730022; /* orange with transparency for bar backgrounds */
   --color-accent-paid: #ffaa44;
   --color-accent-income: #ffcc77;
   --color-accent-summary: #ff8800;
@@ -513,6 +530,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   --color-accent: #8ab4f8;
   --color-accent-strong: #4285f4;
   --color-accent-mid: #5e97f6;
+  --color-accent-bar: #5e97f6;
+  --color-accent-bar-bg: #5e97f622; /* blue with transparency for bar backgrounds */
   --color-accent-paid: #34a853;
   --color-accent-income: #81c995;
   --color-accent-summary: #669df6;
@@ -595,6 +614,8 @@ input.budui-total:not([readonly]):not([disabled]) {
   --color-accent: #ff6ec7;
   --color-accent-strong: #ff2a9d;
   --color-accent-mid: #e84393;
+  --color-accent-bar: #e84393;
+  --color-accent-bar-bg: #e8439322; /* pink with transparency for bar backgrounds */
   --color-accent-paid: #00f5d4;
   --color-accent-income: #7fffd4;
   --color-accent-summary: #ff69b4;
@@ -653,172 +674,182 @@ input.budui-total:not([readonly]):not([disabled]) {
 }
 
 /* =============================================
-   THEME: OCEAN
-   Deep sea teal, navy, calming aquamarine
-   Usage: Add data-theme="ocean" to <body> or .pipboy-theme
+   THEME: MINIMAL OFF-WHITE
+   Minimalistic, off-white background, basic color palette
+   Usage: Add data-theme="minimal" to <body> or .pipboy-theme
    ============================================= */
-[data-theme="ocean"] {
+[data-theme="minimal"] {
   /* === BACKGROUND COLORS === */
-  --color-bg-main: #0a192f;
-  --color-bg-gradient-secondary: #112240;
-  --color-bg-panel: rgba(10, 25, 47, 0.7);
-  --color-bg-panel-strong: rgba(10, 25, 47, 0.85);
-  --color-bg-panel-light: rgba(10, 25, 47, 0.5);
-  --color-bg-panel-medium: rgba(10, 25, 47, 0.6);
-  --color-bg-panel-medium-strong: rgba(10, 25, 47, 0.65);
-  --color-bg-panel-extra-strong: rgba(10, 25, 47, 0.95);
-  --color-bg-panel-80: rgba(10, 25, 47, 0.8);
-  --color-bg-panel-30: rgba(10, 25, 47, 0.3);
-  --color-bg-modal: #0d1f3c;
-  --color-bg-paid: #0f2942;
-  --color-bg-summary: rgb(15, 35, 60);
-  
-  /* === ACCENT COLORS (TEAL/AQUA) === */
-  --color-accent: #64ffda;
-  --color-accent-strong: #00d9ff;
-  --color-accent-mid: #4ecdc4;
-  --color-accent-paid: #00ff88;
-  --color-accent-income: #7fffd4;
-  --color-accent-summary: #20b2aa;
-  --color-pipboy-theme: #a8edea;
-  
-  /* === SEAFOAM/CORAL ACCENT === */
-  --color-cyan: #ff6b9d;
-  --color-cyan-glow: #ff6b9d99;
-  --color-cyan-light: #ff6b9d22;
-  --color-cyan-mid: #ff6b9d44;
-  
-  /* === GLOW & SHADOW COLORS === */
-  --color-paid-glow: #00ff8866;
-  --color-accent-mid-light: #4ecdc422;
-  --color-accent-mid-glow: #4ecdc444;
-  --color-box-shadow: #64ffda44;
-  
-  /* === HOVER & INTERACTIVE === */
-  --color-hover-bg: rgba(100, 255, 218, 0.1);
-  --color-hover-bg-strong: rgba(100, 255, 218, 0.15);
-  --color-bg-accordion-btn: #ff6b9d22;
-  
-  /* === OVERLAY & EFFECTS === */
-  --color-overlay: rgba(10, 25, 47, 0.85);
-  --color-vignette: rgba(5, 15, 35, 0.4);
-  --color-scanline: rgba(100, 255, 218, 0.03);
-  
-  /* === STATUS COLORS === */
-  --color-error: #ff6b6b;
-  --color-health-mid: #ffd93d;
-  --color-health-low: #ff6b6b;
-  --color-neon: #00d9ff;
-  
-  /* === UTILITY === */
-  --color-white: #e6f1ff;
-  
-  /* === TYPOGRAPHY === */
-  --font-primary: "VT323", monospace;
-  --font-heading: "VT323", monospace;
-  --font-size-base: 18px;
-  --letter-spacing: 1px;
-  
-  /* === BORDERS & SHAPES === */
-  --border-radius-sm: 6px;
-  --border-radius-md: 10px;
-  --border-radius-lg: 14px;
-  --border-width: 2px;
-  --border-width-thick: 3px;
-  --border-style: solid;
-  
-  /* === BUTTON STYLES === */
-  --btn-padding: 14px 24px;
-  --btn-font-size: 22px;
-  --btn-transform: none;
-  --btn-text-transform: none;
-}
+  --color-bg-main: #d8d8d8;
+  --color-bg-gradient-secondary: #e2e2e2;
+  --color-bg-panel: rgba(248, 249, 250, 0);
+  --color-bg-panel-strong: rgba(248, 249, 250, 0.85);
+  --color-bg-panel-light: rgba(248, 249, 250, 0.5);
+  --color-bg-panel-medium: #2289ff;
+  --color-bg-panel-medium-strong: rgba(0, 0, 0, 0.65);
+  --color-bg-panel-extra-strong: #111111 ;
+  --color-bg-panel-80: rgba(248, 249, 250, 0.8);
+  --color-bg-panel-30: rgba(248, 249, 250, 0.329);
+  --color-bg-modal: #f4f5f7;
+  --color-bg-paid: #2bb336;
+  --color-bg-summary: #2c9235;
 
-/* =============================================
-   THEME: SUNSET
-   Warm coral, orange, golden hour vibes
-   Usage: Add data-theme="sunset" to <body> or .pipboy-theme
-   ============================================= */
-[data-theme="sunset"] {
-  /* === BACKGROUND COLORS === */
-  --color-bg-main: #1a0a0a;
-  --color-bg-gradient-secondary: #2d1515;
-  --color-bg-panel: rgba(26, 10, 10, 0.7);
-  --color-bg-panel-strong: rgba(26, 10, 10, 0.85);
-  --color-bg-panel-light: rgba(26, 10, 10, 0.5);
-  --color-bg-panel-medium: rgba(26, 10, 10, 0.6);
-  --color-bg-panel-medium-strong: rgba(26, 10, 10, 0.65);
-  --color-bg-panel-extra-strong: rgba(26, 10, 10, 0.95);
-  --color-bg-panel-80: rgba(26, 10, 10, 0.8);
-  --color-bg-panel-30: rgba(26, 10, 10, 0.3);
-  --color-bg-modal: #1f0f0f;
-  --color-bg-paid: #2a1818;
-  --color-bg-summary: rgb(35, 18, 18);
-  
-  /* === ACCENT COLORS (CORAL/ORANGE) === */
-  --color-accent: #ff7f50;
-  --color-accent-strong: #ff6347;
-  --color-accent-mid: #ff8c69;
-  --color-accent-paid: #ffd700;
-  --color-accent-income: #ffe066;
-  --color-accent-summary: #ff7043;
-  --color-pipboy-theme: #ffb89a;
-  
-  /* === GOLDEN/YELLOW ACCENT === */
-  --color-cyan: #ffc857;
-  --color-cyan-glow: #ffc85799;
-  --color-cyan-light: #ffc85722;
-  --color-cyan-mid: #ffc85744;
-  
+  /* === ACCENT COLORS === */
+  --color-accent: #0057b8;         /* blue */
+  --color-accent-strong: #111111;  /* black */
+  --color-accent-mid: #111111;     /* red */
+  --color-accent-bar: #0057b8; 
+  --color-accent-bar-bg: #0057b844; /* blue with transparency for bar backgrounds */
+  --color-accent-paid: #111111;    /* black */
+  --color-accent-income: #0057b8;  /* yellow */
+  --color-accent-summary: #0057b8; /* orange */
+  --color-pipboy-theme: #111111;   /* black for main text */
+
+  /* === CYAN ACCENT (not used, but for compatibility) === */
+  --color-cyan: #fff;
+  --color-cyan-glow: #111111;
+  --color-cyan-light: #111111;
+  --color-cyan-mid: #111111;
+
   /* === GLOW & SHADOW COLORS === */
-  --color-paid-glow: #ffd70066;
-  --color-accent-mid-light: #ff8c6922;
-  --color-accent-mid-glow: #ff8c6944;
-  --color-box-shadow: #ff7f5044;
-  
+  --color-paid-glow: #111;
+  --color-accent-mid-light: #ff413622;
+  --color-accent-mid-glow: #ff413644;
+  --color-box-shadow: #0057b844;
+
   /* === HOVER & INTERACTIVE === */
-  --color-hover-bg: rgba(255, 127, 80, 0.15);
-  --color-hover-bg-strong: rgba(255, 127, 80, 0.2);
-  --color-bg-accordion-btn: #ffc85722;
-  
+  --color-hover-bg: rgba(0, 87, 184, 0.08);
+  --color-hover-bg-strong: rgba(0, 87, 184, 0.15);
+  --color-bg-accordion-btn: #ffdc0022;
+
   /* === OVERLAY & EFFECTS === */
-  --color-overlay: rgba(26, 10, 10, 0.85);
-  --color-vignette: rgba(20, 5, 5, 0.4);
-  --color-scanline: rgba(255, 127, 80, 0.04);
-  
+  --color-overlay: rgba(0, 0, 0, 0.05);
+  --color-vignette: rgba(0, 0, 0, 0.03);
+  --color-scanline: rgba(0, 87, 184, 0.02);
+
   /* === STATUS COLORS === */
-  --color-error: #ff4757;
-  --color-health-mid: #ffd700;
-  --color-health-low: #ff4757;
-  --color-neon: #ff6347;
-  
+  --color-error: #ff4136;
+  --color-health-mid: #111;
+  --color-health-low: #ff851b;
+  --color-neon: #111;
+
   /* === UTILITY === */
-  --color-white: #fff5ee;
-  
+  --color-white: #fff;
+
   /* === TYPOGRAPHY === */
-  --font-primary: "VT323", monospace;
-  --font-heading: "VT323", monospace;
-  --font-size-base: 18px;
-  --letter-spacing: 1px;
-  
+  --font-primary: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+  --font-heading: "Comic Sans MS", "Comic Sans", cursive, sans-serif;
+  --font-size-base: 22px;
+  --logo-font-size: 50px;
+  --letter-spacing: 0.5px;
+
   /* === BORDERS & SHAPES === */
   --border-radius-sm: 4px;
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
-  --border-width: 2px;
-  --border-width-thick: 3px;
+  --border-width: 1.5px;
+  --border-width-thick: 2px;
   --border-style: solid;
-  
+
   /* === BUTTON STYLES === */
-  --btn-padding: 14px 24px;
-  --btn-font-size: 22px;
+  --btn-padding: 10px 20px;
+  --btn-font-size: 20px;
   --btn-transform: none;
   --btn-text-transform: none;
-}
 
+  /* === LOCK ICON STYLES === */
+  --lock-icon-size: 20px;
+  --lock-icon-top: 0.25em;
+  --lock-icon-right: 0.5em;
+
+  /* === ACCORDION & LIST FONT SIZES === */
+  --accordion-main-font-size: 22px;
+  --accordion-cat-font-size: 20px;
+  --subcat-total-font-size: 20px;
+  --edit-font-size: 15px;
+  --list-entry-font-size: 14px;
+  --input-font-size: 16px;
+  --total-font-size: 18px;
+}
 /* =============================================
    THEME-SPECIFIC ELEMENT OVERRIDES
    ============================================= */
+
+  /* === MINIMAL THEME: ELEMENT OVERRIDES === */
+  [data-theme="minimal"], [data-theme="minimal"] .pipboy-theme, [data-theme="minimal"] body {
+    color: #111 !important;
+    font-weight: bolder !important;
+  }
+
+  [data-theme="minimal"] .ascii-logo * {    
+    font-weight: bold !important;
+  }
+
+  [data-theme="minimal"] button:not(.budui-lock-btn),
+  [data-theme="minimal"] .budui-action-btn,
+  [data-theme="minimal"] .budui-accordion-btn {
+    color: #fff !important;
+    border: 3px solid #111 !important;
+    background: var(--color-accent) !important;
+    box-shadow: 4px 4px 12px 0 #111a !important;
+  }
+  [data-theme="minimal"] .btn-black { background: #111 !important; color: #fff !important; }
+  [data-theme="minimal"] .btn-red { background: #ff4136 !important; color: #fff !important; }
+  [data-theme="minimal"] .btn-yellow { background: #ffdc00 !important; color: #111 !important; }
+  [data-theme="minimal"] .btn-green { background: #2ecc40 !important; color: #fff !important; }
+  [data-theme="minimal"] .btn-blue { background: #0057b8 !important; color: #fff !important; }
+  [data-theme="minimal"] .btn-orange { background: #ff851b !important; color: #fff !important; }
+
+  [data-theme="minimal"] .pipboy-theme,
+  [data-theme="minimal"] .panel,
+  [data-theme="minimal"] .budui-panel,
+  [data-theme="minimal"] .modal,
+  [data-theme="minimal"] .budui-modal-content {
+    border: 4px solid #111 !important;
+    box-shadow: 6px 6px 20px 0 #111a !important;
+  }
+
+  [data-theme="minimal"] .summary,
+  [data-theme="minimal"] .budui-summary-card,
+  [data-theme="minimal"] .budui-edit-category-label,
+  [data-theme="minimal"] .budui-progress-bar-bg {
+    border: 3px solid #111 !important;
+    box-shadow: 4px 4px 12px 0 #111a !important;
+  }
+
+  [data-theme="minimal"] .budui-edit-amount {
+    color:#111 !important;
+    border: 3px solid #111 !important;
+    box-shadow: 4px 4px 12px 0 #111a !important;
+    font-weight: bold !important;
+    padding: 8px 2px 8px !important;
+  }
+
+  [data-theme="minimal"] .budui-edit-category-label {
+    color:#111 !important;
+    font-weight: bold !important;
+    font-size: 17px !important;
+  }
+
+[data-theme="minimal"] #helpReticleBtn,
+[data-theme="minimal"] .reticle-bottom-left,
+[data-theme="minimal"] .reticle-bottom-right {
+  color: #0057b8 !important;
+  background: #0057b8 !important;
+}
+
+  [data-theme="minimal"] .budui-list-entry *,
+  [data-theme="minimal"] .budui-list-entry.recurring-entry * {
+      font-size: 16px !important;
+  }
+
+
+  [data-theme="minimal"] *, [data-theme="minimal"] .pipboy-theme * {
+    font-family: var(--font-primary, 'Segoe UI', Arial, sans-serif) !important;
+  }
+  
+
+
 
 /* === WINTER: Soft frosted glass buttons === */
 [data-theme="winter"] button:not(.budui-lock-btn),
@@ -841,11 +872,6 @@ input.budui-total:not([readonly]):not([disabled]) {
   box-shadow: none !important;
 }
 
-.pipboy-theme::before,
-.pipboy-theme::after {
-  background: none !important;
-  box-shadow: none !important;
-}
 
 /* === STRANGER THINGS: Retro blocky 80s style === */
 [data-theme="stranger"] button:not(.budui-lock-btn),
@@ -959,71 +985,10 @@ input.budui-total:not([readonly]):not([disabled]) {
   box-shadow: 0 0 12px var(--color-accent-mid-glow);
 }
 
-/* === OCEAN: Deep sea calm, teal glow === */
-[data-theme="ocean"] button:not(.budui-lock-btn),
-[data-theme="ocean"] .budui-action-btn,
-[data-theme="ocean"] .budui-accordion-btn {
-  font-family: var(--font-primary) !important;
-  border-radius: var(--border-radius-md) !important;
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 12px var(--color-accent-mid-glow), 0 4px 20px rgba(100, 255, 218, 0.15);
-  text-shadow: 0 0 6px var(--color-accent) !important;
-}
-[data-theme="ocean"] button:not(.budui-lock-btn):hover,
-[data-theme="ocean"] .budui-action-btn:hover {
-  box-shadow: 0 0 20px var(--color-accent), 0 6px 25px rgba(100, 255, 218, 0.25);
-  border-color: var(--color-cyan) !important;
-}
-[data-theme="ocean"] .budui-accordion-btn.main-cat {
-  background: linear-gradient(135deg, var(--color-bg-main) 0%, #112d4e 100%);
-  border: 2px solid var(--color-accent) !important;
-  box-shadow: 0 0 15px var(--color-accent-mid-glow), inset 0 0 30px rgba(100, 255, 218, 0.05);
-}
-[data-theme="ocean"] input,
-[data-theme="ocean"] select {
-  font-family: var(--font-primary) !important;
-  border-radius: var(--border-radius-md) !important;
-  border-color: var(--color-accent-mid) !important;
-  box-shadow: 0 0 6px var(--color-accent-mid-light);
-}
-[data-theme="ocean"] input:focus,
-[data-theme="ocean"] select:focus {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 12px var(--color-accent-mid-glow);
+[data-theme="minimal"] .budui-edit-amount {
+  padding: 8px 2px 8px !important;
 }
 
-/* === SUNSET: Warm coral/orange glow === */
-[data-theme="sunset"] button:not(.budui-lock-btn),
-[data-theme="sunset"] .budui-action-btn,
-[data-theme="sunset"] .budui-accordion-btn {
-  font-family: var(--font-primary) !important;
-  border-radius: var(--border-radius-md) !important;
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 12px var(--color-accent-mid-glow), 0 4px 20px rgba(255, 127, 80, 0.2);
-  text-shadow: 0 0 6px var(--color-accent) !important;
-}
-[data-theme="sunset"] button:not(.budui-lock-btn):hover,
-[data-theme="sunset"] .budui-action-btn:hover {
-  box-shadow: 0 0 20px var(--color-accent), 0 6px 25px rgba(255, 127, 80, 0.3);
-  border-color: var(--color-cyan) !important;
-}
-[data-theme="sunset"] .budui-accordion-btn.main-cat {
-  background: linear-gradient(135deg, var(--color-bg-main) 0%, #3d1f1f 100%);
-  border: 2px solid var(--color-accent) !important;
-  box-shadow: 0 0 15px var(--color-accent-mid-glow), inset 0 0 30px rgba(255, 127, 80, 0.08);
-}
-[data-theme="sunset"] input,
-[data-theme="sunset"] select {
-  font-family: var(--font-primary) !important;
-  border-radius: var(--border-radius-md) !important;
-  border-color: var(--color-accent-mid) !important;
-  box-shadow: 0 0 6px var(--color-accent-mid-light);
-}
-[data-theme="sunset"] input:focus,
-[data-theme="sunset"] select:focus {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 0 12px var(--color-accent-mid-glow);
-}
 
 /* =============================================
    GLOBAL: Lock & Help buttons NEVER have borders
@@ -1269,13 +1234,13 @@ body, .pipboy-theme {
 #helpReticleBtn {
   position: relative;
   background: transparent;
-  color: var(--color-accent-strong);
+  color: var(--color-accent);
   border: none;
   font-family: "VT323", monospace;
   font-size: var(--btn-font-size, 22px);
   padding: 10px 16px;
   cursor: pointer;
-  text-shadow: 0 0 6px var(--color-accent-strong);
+  text-shadow: 0 0 6px var(--color-accent);
   box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.3), 0 0 14px 4px rgba(160, 216, 239, 0.2);
 }
 #helpReticleBtn::before,
@@ -1284,7 +1249,7 @@ body, .pipboy-theme {
   position: absolute;
   width: 12px;
   height: 2px;
-  background: var(--color-accent-strong);
+  background: var(--color-accent);
   box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.4);
 }
 #helpReticleBtn::before {
@@ -1302,7 +1267,7 @@ body, .pipboy-theme {
   position: absolute;
   width: 12px;
   height: 2px;
-  background: var(--color-accent-strong);
+  background: var(--color-accent);
   box-shadow: 0 0 8px 2px rgba(160, 216, 239, 0.4);
 }
 #helpReticleBtn span.reticle-bottom-left {
@@ -1355,6 +1320,7 @@ body, .pipboy-theme {
 /* Totals and values */
 .budui-summary-value, .budui-list-total {
   color: var(--color-accent-strong);
+  font-weight: bold !important;
   text-shadow: none;
 }
 
@@ -1661,8 +1627,9 @@ body, .pipboy-theme {
   
 /* BUDGET UI PROGRESS BAR */
 .budui-progress-bar-wrapper {
-  margin: 32px auto 0 auto;
-  max-width: 400px;
+  margin: 32px auto 10px auto;
+  max-width: 300px;
+  width: 100%;
   text-align: center;
 }
 .budui-progress-labels, .budui-progress-values {
@@ -1670,12 +1637,12 @@ body, .pipboy-theme {
   justify-content: space-between;
   font-size: 32px;
   color: var(--color-accent);
-  margin: 0 4px 2px 4px;
+  margin: 0 0px 2px 4px;
 }
 .budui-progress-bar-bg {
   width: 100%;
   height: 40px;
-  background: var(--color-bg-panel);
+  background: var(--color-accent-bar-bg);
   border: 2px solid var(--color-accent-mid);
   border-radius: 8px;
   box-shadow: 0 0 8px var(--color-accent-mid);
@@ -1684,7 +1651,7 @@ body, .pipboy-theme {
 }
 .budui-progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-mid) 100%);
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-bar) 100%);
   border-radius: 8px 0 0 8px;
   box-shadow: 0 0 8px var(--color-accent-mid);
   transition: width 0.4s;
@@ -1960,22 +1927,23 @@ input, .pipboy-theme input {
   box-shadow: none !important;
 }
 
-/* Pip-Boy background grid / lines */
-.pipboy-theme::after {
+/* Pip-Boy background grid / lines - only for default theme */
+.pipboy-theme:not([data-theme])::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
-    var(--color-scanline) 0px,
-    var(--color-scanline) 2px,
+    rgba(80,255,80,0.45) 0px,
+    rgba(80,255,80,0.45) 2px,
     transparent 3px,
     transparent 4px
   );
-  opacity: 0.25;
-  z-index: 9996; /* below vignette and sweep */
+  opacity: 0.15;
+  z-index: 9996; /* above vignette */
   border: none !important;
+  mix-blend-mode: lighten;
 }
 
 
@@ -2169,7 +2137,7 @@ input, .pipboy-theme input {
 /* Thicker Pip-Boy health bar */
 #healthBarContainer {
   background: var(--color-bg-panel-80); /* darker Pip-Boy green/black */
-  border: 3px solid var(--color-accent-mid);          glowing border */
+  border: 3px solid var(--color-accent-mid);          /*glowing border */
   box-shadow: 0 0 10px var(--color-accent-mid);      /* glow */
   border-radius: 4px;
 
@@ -2691,7 +2659,7 @@ body.modal-open {
 }
 
 /* Remove all filter and drop-shadow effects from pipboy-theme and terminal */
-.pipboy-theme, .pipboy-theme * {
+.pipboy-theme * {
   filter: none !important;
 
 }
