@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     { name: 'Bubble', value: 'winter' },
     { name: 'Comic', value: 'minimal' },
     // { name: 'Halloween', value: 'halloween' },
-    { name: 'Google', value: 'google' },
+    { name: 'Script', value: 'google' },
     // { name: 'Synthwave', value: 'synthwave' },
   ];
   const themeSelector = document.getElementById('themeSelector');
