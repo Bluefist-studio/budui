@@ -184,16 +184,22 @@ async function saveSavingsToFirestore() {
     }
     return { label, first, second, total, firstPaid, secondPaid };
   });
-  await db.collection('users').doc(user.uid).collection('budget').doc('savings').set({ categories });
+  // Save to the currently selected month document
+  const docRef = db.collection('users').doc(user.uid).collection('budget').doc(currentMonth);
+  const docSnap = await docRef.get();
+  const data = docSnap.exists ? docSnap.data() : {};
+  data.savings = { categories };
+  await docRef.set(data);
 }
 
 async function loadSavingsFromFirestore() {
   const user = auth.currentUser;
   if (!user) { console.log('No user logged in'); return; }
-  const doc = await db.collection('users').doc(user.uid).collection('budget').doc('savings').get();
-  if (!doc.exists) { console.log('No savings doc found'); return; }
-  const { categories } = doc.data();
-  console.log('Loaded savings categories from Firestore:', categories);
+  // Load from the currently selected month document
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+  if (!doc.exists || !doc.data().savings) { console.log('No savings data found in default doc'); return; }
+  const { categories } = doc.data().savings;
+  console.log('Loaded savings categories from unified Firestore:', categories);
   const savingsPanel = document.querySelector('#savingsCategoryBtn')?.nextElementSibling;
   if (!savingsPanel || !categories) { console.log('Savings panel or categories missing'); return; }
   const blocks = Array.from(savingsPanel.querySelectorAll('.budui-block'));
