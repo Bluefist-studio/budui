@@ -184,16 +184,22 @@ async function saveMultiMediaToFirestore() {
     }
     return { label, first, second, total, firstPaid, secondPaid };
   });
-  await db.collection('users').doc(user.uid).collection('budget').doc('multi-media').set({ categories });
+  // Save to the currently selected month document
+  const docRef = db.collection('users').doc(user.uid).collection('budget').doc(currentMonth);
+  const docSnap = await docRef.get();
+  const data = docSnap.exists ? docSnap.data() : {};
+  data['multi-media'] = { categories };
+  await docRef.set(data);
 }
 
 async function loadMultiMediaFromFirestore() {
   const user = auth.currentUser;
   if (!user) { console.log('No user logged in'); return; }
-  const doc = await db.collection('users').doc(user.uid).collection('budget').doc('multi-media').get();
-  if (!doc.exists) { console.log('No multi-media doc found'); return; }
-  const { categories } = doc.data();
-  console.log('Loaded multi-media categories from Firestore:', categories);
+  // Load from the currently selected month document
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+  if (!doc.exists || !doc.data()['multi-media']) { console.log('No multi-media data found in default doc'); return; }
+  const { categories } = doc.data()['multi-media'];
+  console.log('Loaded multi-media categories from unified Firestore:', categories);
   const multimediaPanel = document.querySelector('#multimediaCategoryBtn')?.nextElementSibling;
   if (!multimediaPanel || !categories) { console.log('Multi-media panel or categories missing'); return; }
   const blocks = Array.from(multimediaPanel.querySelectorAll('.budui-block'));
