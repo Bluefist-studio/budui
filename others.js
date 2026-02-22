@@ -183,16 +183,22 @@ async function saveOthersToFirestore() {
     }
     return { label, first, second, total, firstPaid, secondPaid };
   });
-  await db.collection('users').doc(user.uid).collection('budget').doc('others').set({ categories });
+  // Save to the currently selected month document
+  const docRef = db.collection('users').doc(user.uid).collection('budget').doc(currentMonth);
+  const docSnap = await docRef.get();
+  const data = docSnap.exists ? docSnap.data() : {};
+  data.others = { categories };
+  await docRef.set(data);
 }
 
 async function loadOthersFromFirestore() {
   const user = auth.currentUser;
   if (!user) { console.log('No user logged in'); return; }
-  const doc = await db.collection('users').doc(user.uid).collection('budget').doc('others').get();
-  if (!doc.exists) { console.log('No others doc found'); return; }
-  const { categories } = doc.data();
-  console.log('Loaded others categories from Firestore:', categories);
+  // Load from the currently selected month document
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+  if (!doc.exists || !doc.data().others) { console.log('No others data found in default doc'); return; }
+  const { categories } = doc.data().others;
+  console.log('Loaded others categories from unified Firestore:', categories);
   const othersPanel = document.querySelector('#othersCategoryBtn')?.nextElementSibling;
   if (!othersPanel || !categories) { console.log('Others panel or categories missing'); return; }
   const blocks = Array.from(othersPanel.querySelectorAll('.budui-block'));
