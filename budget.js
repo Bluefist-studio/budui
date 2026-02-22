@@ -1,5 +1,331 @@
+// --- Migration Script: Combine old category docs into unified 'default' doc ---
+async function migrateOldBudgetDataToUnifiedDefault() {
+  const user = auth.currentUser;
+  if (!user) { alert('No user logged in'); return; }
+  const catNames = ['income', 'housing', 'transport', 'savings', 'others', 'multi-media'];
+  const data = {};
+  for (const cat of catNames) {
+    const doc = await db.collection('users').doc(user.uid).collection('budget').doc(cat).get();
+    data[cat] = doc.exists ? { categories: doc.data().categories || [] } : { categories: [] };
+  }
+  await db.collection('users').doc(user.uid).collection('budget').doc('default').set(data);
+  alert('Migration complete! All categories are now in the unified default document.');
+}
+// --- Migration Script: Combine old spending docs into unified 'default' doc ---
+async function migrateOldSpendingToUnifiedDefault() {
+  const user = auth.currentUser;
+  if (!user) { alert('No user logged in'); return; }
+  // Assume old spending docs are named 'spending', 'spending_1', 'spending_2', etc.
+  const spendingEntries = [];
+  const budgetColl = db.collection('users').doc(user.uid).collection('budget');
+  const snap = await budgetColl.get();
+  snap.forEach(doc => {
+    if (doc.id.startsWith('spending')) {
+      const data = doc.data();
+      if (data && Array.isArray(data.entries)) {
+        spendingEntries.push(...data.entries);
+      }
+    }
+  });
+  // Save combined spending entries to 'default' doc
+  const defaultDocRef = budgetColl.doc('default');
+  const defaultDoc = await defaultDocRef.get();
+  let defaultData = defaultDoc.exists ? defaultDoc.data() : {};
+  defaultData.spending = { entries: spendingEntries };
+  await defaultDocRef.set(defaultData);
+  alert('Spending migration complete! All entries are now in the unified default document.');
+}
+// --- Unified Firestore Save/Load for All Categories ---
+async function saveAllCategoriesToFirestore(docName = 'default') {
+  const user = auth.currentUser;
+  if (!user) return;
+  // Helper to extract categories from a panel
+  function extractCategories(panelSelector, maxBlocks = 10) {
+    const panel = document.querySelector(panelSelector)?.nextElementSibling;
+    if (!panel) return [];
+    const blocks = Array.from(panel.querySelectorAll('.budui-block'));
+    return blocks.slice(0, maxBlocks).map(block => {
+      const labelInput = block.querySelector('.budui-edit-category-label');
+      const halfFields = block.querySelectorAll('.budui-half');
+      const totalField = block.querySelector('.budui-total');
+      let label = labelInput ? labelInput.value.trim() : '';
+      let first = halfFields[0] ? halfFields[0].value : '';
+      let second = halfFields[1] ? halfFields[1].value : '';
+      let total = totalField ? totalField.value : '';
+      let firstPaid = halfFields[0] ? halfFields[0].classList.contains('budui-paid') : false;
+      let secondPaid = halfFields[1] ? halfFields[1].classList.contains('budui-paid') : false;
+      if (!label || label === 'Sub-category') {
+        label = 'Sub-category';
+        first = '';
+        second = '';
+        total = '';
+        firstPaid = false;
+        secondPaid = false;
+      }
+      return { label, first, second, total, firstPaid, secondPaid };
+    });
+  }
+
+  const data = {
+    income: { categories: extractCategories('#incomeCategoryBtn', 6) },
+    housing: { categories: extractCategories('#housingCategoryBtn', 10) },
+    transport: { categories: extractCategories('#transportCategoryBtn', 10) },
+    savings: { categories: extractCategories('#savingsCategoryBtn', 10) },
+    others: { categories: extractCategories('#othersCategoryBtn', 10) },
+    'multi-media': { categories: extractCategories('#multimediaCategoryBtn', 15) }
+  };
+  await db.collection('users').doc(user.uid).collection('budget').doc(docName).set(data);
+}
+
+async function loadAllCategoriesFromFirestore(docName = 'default') {
+  const user = auth.currentUser;
+  if (!user) return;
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(docName).get();
+  if (!doc.exists) return;
+  const data = doc.data();
+  // Helper to load categories into a panel
+  function loadCategories(panelSelector, categories = []) {
+    const panel = document.querySelector(panelSelector)?.nextElementSibling;
+    if (!panel || !categories) return;
+    const blocks = Array.from(panel.querySelectorAll('.budui-block'));
+    blocks.forEach((block, i) => {
+      const cat = categories[i];
+      const labelInput = block.querySelector('.budui-edit-category-label');
+      const halfFields = block.querySelectorAll('.budui-half');
+      const totalField = block.querySelector('.budui-total');
+      if (!cat || !cat.label || cat.label === 'Sub-category') {
+        if (labelInput) labelInput.value = 'Sub-category';
+        if (halfFields[0]) halfFields[0].value = '', halfFields[0].classList.remove('budui-paid');
+        if (halfFields[1]) halfFields[1].value = '', halfFields[1].classList.remove('budui-paid');
+        if (totalField) totalField.value = '';
+        // Hide if locked
+        const isLocked = block.closest('.budui-accordion-panel')?.previousElementSibling?.dataset?.locked === 'true';
+        block.style.display = isLocked ? 'none' : '';
+        return;
+      }
+      if (labelInput) labelInput.value = cat.label;
+      if (halfFields[0]) {
+        halfFields[0].value = cat.first;
+        if (cat.firstPaid) halfFields[0].classList.add('budui-paid');
+        else halfFields[0].classList.remove('budui-paid');
+      }
+      if (halfFields[1]) {
+        halfFields[1].value = cat.second;
+        if (cat.secondPaid) halfFields[1].classList.add('budui-paid');
+        else halfFields[1].classList.remove('budui-paid');
+      }
+      if (totalField) totalField.value = cat.total;
+      block.style.display = '';
+    });
+    // Hide all 'Sub-category' blocks after loading
+    blocks.forEach(block => {
+      const labelInput = block.querySelector('.budui-edit-category-label');
+      if (labelInput && labelInput.value.trim().toLowerCase() === 'sub-category') {
+        block.style.display = 'none';
+      }
+    });
+    updateBudgetAccordionTotals();
+  }
+  loadCategories('#incomeCategoryBtn', data.income?.categories);
+  loadCategories('#housingCategoryBtn', data.housing?.categories);
+  loadCategories('#transportCategoryBtn', data.transport?.categories);
+  loadCategories('#savingsCategoryBtn', data.savings?.categories);
+  loadCategories('#othersCategoryBtn', data.others?.categories);
+  loadCategories('#multimediaCategoryBtn', data['multi-media']?.categories);
+}
+// --- Global month state ---
+let currentMonth = 'default';
 // --- Theme Selector Logic ---
 document.addEventListener('DOMContentLoaded', function() {
+  // --- Spending logic initialization ---
+  if (window.spending) {
+    window.spending.attachSpendingHandlers();
+    window.spending.loadSpendingFromFirestore();
+  }
+  const currentMonthDisplay = document.getElementById('currentMonthDisplay');
+  const selectMonthModal = document.getElementById('selectMonthModal');
+  const monthSelect = document.getElementById('monthSelect');
+  const confirmSelectMonthBtn = document.getElementById('confirmSelectMonthBtn');
+  const cancelSelectMonthBtn = document.getElementById('cancelSelectMonthBtn');
+  const deleteMonthBtn = document.getElementById('deleteMonthBtn');
+
+      function updateCurrentMonthDisplay() {
+        if (currentMonthDisplay) currentMonthDisplay.textContent = currentMonth;
+      }
+      updateCurrentMonthDisplay();
+
+      // Show/hide delete button based on selected month
+      function updateDeleteMonthBtn() {
+        if (!deleteMonthBtn) return;
+        const selected = monthSelect.value;
+        if (selected && selected !== 'default') {
+          deleteMonthBtn.style.display = 'inline-block';
+        } else {
+          deleteMonthBtn.style.display = 'none';
+        }
+      }
+      monthSelect.addEventListener('change', updateDeleteMonthBtn);
+      // Also call after populating
+      setTimeout(updateDeleteMonthBtn, 100);
+
+  // Move spending functions above month selection handler
+  // --- Spending logic now in spending.js ---
+  // Use window.spending methods for all spending operations
+  // Example usage:
+  // window.spending.loadSpendingFromFirestore();
+  // window.spending.saveSpendingToFirestore();
+  // window.spending.renderSpendingList();
+  // window.spending.openSpendingModal(mode, entryIdx);
+  // window.spending.closeSpendingModal();
+  // window.spending.attachSpendingHandlers();
+
+  if (currentMonthDisplay && selectMonthModal && monthSelect && confirmSelectMonthBtn && cancelSelectMonthBtn) {
+      currentMonthDisplay.onclick = async function() {
+        // Show modal and populate month list
+        monthSelect.innerHTML = '';
+        const user = auth.currentUser;
+        if (!user) { alert('No user logged in'); return; }
+        const snap = await db.collection('users').doc(user.uid).collection('budget').get();
+        snap.forEach(doc => {
+          const opt = document.createElement('option');
+          opt.value = doc.id;
+          opt.textContent = doc.id;
+          monthSelect.appendChild(opt);
+        });
+        monthSelect.value = currentMonth;
+        selectMonthModal.style.display = 'block';
+        updateDeleteMonthBtn();
+      };
+      cancelSelectMonthBtn.onclick = function() {
+        selectMonthModal.style.display = 'none';
+      };
+      confirmSelectMonthBtn.onclick = async function() {
+        const selected = monthSelect.value;
+        if (!selected) return;
+        currentMonth = selected;
+        updateCurrentMonthDisplay();
+        selectMonthModal.style.display = 'none';
+        await loadAllCategoriesFromFirestore(currentMonth);
+        updateAllCategoryTotalsPaidStatus();
+        updateIncomeTotalsPaidStatus();
+        spendingReady = false;
+        if (window.spending && typeof window.spending.loadSpendingFromFirestore === 'function') {
+          await window.spending.loadSpendingFromFirestore();
+          window.spending.attachSpendingHandlers();
+        } else {
+          alert('Spending module not loaded. Please check spending.js inclusion order.');
+        }
+      };
+
+      // Delete month logic with two-step confirmation
+      if (deleteMonthBtn) {
+        let deleteMonthConfirmState = false;
+        let deleteMonthConfirmTimeout = null;
+        deleteMonthBtn.onclick = async function() {
+          const selected = monthSelect.value;
+          if (!selected || selected === 'default') return;
+          if (deleteMonthConfirmState) {
+            // Second click: perform delete
+            deleteMonthBtn.textContent = 'Delete';
+            deleteMonthBtn.classList.remove('delete-confirm-active');
+            deleteMonthConfirmState = false;
+            clearTimeout(deleteMonthConfirmTimeout);
+            const user = auth.currentUser;
+            if (!user) { alert('No user logged in'); return; }
+            try {
+              await db.collection('users').doc(user.uid).collection('budget').doc(selected).delete();
+              // Remove from dropdown
+              const opt = monthSelect.querySelector('option[value="' + selected + '"]');
+              if (opt) opt.remove();
+              // Reset to default month
+              currentMonth = 'default';
+              monthSelect.value = 'default';
+              updateCurrentMonthDisplay();
+              await loadAllCategoriesFromFirestore('default');
+              updateAllCategoryTotalsPaidStatus();
+              updateIncomeTotalsPaidStatus();
+              if (window.spending && typeof window.spending.loadSpendingFromFirestore === 'function') {
+                await window.spending.loadSpendingFromFirestore();
+                window.spending.attachSpendingHandlers();
+              }
+              updateDeleteMonthBtn();
+              selectMonthModal.style.display = 'none';
+            } catch (err) {
+              alert('Error deleting month: ' + err.message);
+            }
+          } else {
+            // First click: ask for confirmation
+            deleteMonthBtn.textContent = 'Confirm?';
+            deleteMonthBtn.classList.add('delete-confirm-active');
+            deleteMonthConfirmState = true;
+            clearTimeout(deleteMonthConfirmTimeout);
+            deleteMonthConfirmTimeout = setTimeout(() => {
+              deleteMonthBtn.textContent = 'Delete';
+              deleteMonthBtn.classList.remove('delete-confirm-active');
+              deleteMonthConfirmState = false;
+            }, 3000);
+          }
+        };
+      }
+  }
+    // Add New Month button handler (modal)
+    const addNewMonthBtn = document.getElementById('addNewMonthBtn');
+    const addNewMonthModal = document.getElementById('addNewMonthModal');
+    const newMonthInput = document.getElementById('newMonthInput');
+    const confirmAddNewMonthBtn = document.getElementById('confirmAddNewMonthBtn');
+    const cancelAddNewMonthBtn = document.getElementById('cancelAddNewMonthBtn');
+    if (addNewMonthBtn && addNewMonthModal && newMonthInput && confirmAddNewMonthBtn && cancelAddNewMonthBtn) {
+      addNewMonthBtn.onclick = function() {
+        newMonthInput.value = '';
+        // Hide selector modal if open
+        const selectMonthModal = document.getElementById('selectMonthModal');
+        if (selectMonthModal) selectMonthModal.style.display = 'none';
+        addNewMonthModal.style.display = 'block';
+        newMonthInput.focus();
+      };
+      cancelAddNewMonthBtn.onclick = function() {
+        addNewMonthModal.style.display = 'none';
+        const selectMonthModal = document.getElementById('selectMonthModal');
+        if (selectMonthModal) selectMonthModal.style.display = 'block';
+      };
+      confirmAddNewMonthBtn.onclick = async function() {
+        const user = auth.currentUser;
+        if (!user) { alert('No user logged in'); return; }
+        let monthName = newMonthInput.value.trim();
+        if (!monthName) { alert('Please enter a month name.'); return; }
+        // Copy default data to new month document, reset paid status and remove spending
+        const defaultDoc = await db.collection('users').doc(user.uid).collection('budget').doc('default').get();
+        if (!defaultDoc.exists) { alert('No default data found!'); return; }
+        let newMonthData = JSON.parse(JSON.stringify(defaultDoc.data()));
+        // Reset paid status for all categories
+        const catNames = ['income', 'housing', 'transport', 'savings', 'others', 'multi-media'];
+        for (const cat of catNames) {
+          if (newMonthData[cat] && Array.isArray(newMonthData[cat].categories)) {
+            newMonthData[cat].categories.forEach(item => {
+              item.firstPaid = false;
+              item.secondPaid = false;
+            });
+          }
+        }
+        // Remove spending entries
+        newMonthData.spending = { entries: [] };
+        await db.collection('users').doc(user.uid).collection('budget').doc(monthName).set(newMonthData);
+        addNewMonthModal.style.display = 'none';
+        const selectMonthModal = document.getElementById('selectMonthModal');
+        if (selectMonthModal) selectMonthModal.style.display = 'none';
+        // Immediately load the new month
+        currentMonth = monthName;
+        updateCurrentMonthDisplay();
+        await loadAllCategoriesFromFirestore(currentMonth);
+        updateAllCategoryTotalsPaidStatus();
+        updateIncomeTotalsPaidStatus();
+        spendingReady = false;
+        if (window.spending && typeof window.spending.loadSpendingFromFirestore === 'function') {
+          await window.spending.loadSpendingFromFirestore();
+          window.spending.attachSpendingHandlers();
+        }
+      };
+    }
   const themes = [
     { name: 'Pipboy', value: '' },
     { name: 'Bubble', value: 'winter' },
@@ -242,7 +568,9 @@ function showWarningMsg(msg, actionCallback) {
     warnDiv.style.display = 'none';
     warnDiv.innerHTML = '';
     if (typeof actionCallback === 'function') actionCallback();
-    await firebase.firestore().collection('users').doc(uid).collection('budget').doc('spending').delete();
+    const user = auth.currentUser;
+    if (!user) return;
+    await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).set({ ...((await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get()).data() || {}), spending: { entries: [] } });
     spendingEntries = [];
     if (typeof renderSpendingList === 'function') renderSpendingList();
     if (typeof loadSpendingFromFirestore === 'function') await loadSpendingFromFirestore();
@@ -554,10 +882,6 @@ document.addEventListener('DOMContentLoaded', function() {
     hueSlider.addEventListener('input', function() {
       updateHueRotate(this.value);
     });
-    resetHueBtn.addEventListener('click', function() {
-      hueSlider.value = 0;
-      updateHueRotate(0);
-    });
   }
   const housingBtn = document.getElementById('housingCategoryBtn');
   if (housingBtn) {
@@ -759,43 +1083,27 @@ function updateSummaryTotals() {
     });
   }
 
-  // --- Expenses forecast: sum all expense sub-cat totals (ignore paid status) + spending
-  const expensesPanel = document.getElementById('expensesCategoryBtn')?.nextElementSibling;
-  if (expensesPanel) {
-    // Collect all .budui-blocks in the main panel and all sibling panels (multi-media, savings, others)
-    let blocks = Array.from(expensesPanel.querySelectorAll('.budui-block'));
-    let next = expensesPanel.nextElementSibling;
-    while (next && next.classList.contains('budui-accordion-panel')) {
-      blocks = blocks.concat(Array.from(next.querySelectorAll('.budui-block')));
-      next = next.nextElementSibling;
-    }
-    // Also include .pip-item.budui-row (for multi-media, savings, others)
-    let pipPanels = [];
-    let pipNext = expensesPanel.nextElementSibling;
-    while (pipNext && pipNext.classList.contains('budui-accordion-panel')) {
-      pipPanels.push(pipNext);
-      pipNext = pipNext.nextElementSibling;
-    }
-    pipPanels.forEach(panel => {
-      blocks = blocks.concat(Array.from(panel.querySelectorAll('.pip-item.budui-row')));
-    });
-    blocks.forEach(block => {
+  // --- Expenses forecast: sum all expense category panels (housing, transport, multi-media, savings, others)
+  const expensePanelSelectors = [
+    '#housingCategoryBtn',
+    '#transportCategoryBtn',
+    '#multimediaCategoryBtn',
+    '#savingsCategoryBtn',
+    '#othersCategoryBtn'
+  ];
+  expensePanelSelectors.forEach(selector => {
+    const panel = document.querySelector(selector)?.nextElementSibling;
+    if (!panel) return;
+    Array.from(panel.querySelectorAll('.budui-block')).forEach(block => {
       const first = block.querySelectorAll('.budui-half')[0];
       const second = block.querySelectorAll('.budui-half')[1];
       if (first && second) {
         expensesForecast += (parseFloat(first.value) || 0) + (parseFloat(second.value) || 0);
-      }
-    });
-    // --- Expenses current: sum only paid expense sub-cat totals + spending
-    expensesPanel.querySelectorAll('.budui-block').forEach(block => {
-      const first = block.querySelectorAll('.budui-half')[0];
-      const second = block.querySelectorAll('.budui-half')[1];
-      if (first && second) {
         if (first.classList.contains('budui-paid')) expensesCurrent += parseFloat(first.value) || 0;
         if (second.classList.contains('budui-paid')) expensesCurrent += parseFloat(second.value) || 0;
       }
     });
-  }
+  });
 
 
   // Add spending ONLY to current (paid) expenses, NOT forecast
@@ -1077,16 +1385,16 @@ document.addEventListener("DOMContentLoaded", function() {
   async function saveSpendingToFirestore() {
     const user = auth.currentUser;
     if (!user) return;
-    await db.collection('users').doc(user.uid).collection('budget').doc('spending').set({ entries: spendingEntries });
+    await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).set({ ...((await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get()).data() || {}), spending: { entries: spendingEntries } });
   }
 
 async function loadSpendingFromFirestore() {
     spendingReady = false;
     const user = auth.currentUser;
     if (!user) { spendingReady = true; return; }
-    const doc = await db.collection('users').doc(user.uid).collection('budget').doc('spending').get();
-    if (!doc.exists) { spendingReady = true; return; }
-    const { entries } = doc.data();
+    const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+    if (!doc.exists || !doc.data().spending) { spendingReady = true; return; }
+    const { entries } = doc.data().spending;
     if (Array.isArray(entries)) {
       spendingEntries = entries;
       renderSpendingList();
@@ -1114,15 +1422,25 @@ async function loadSpendingFromFirestore() {
   const modalEditInitCancelBtn = document.getElementById('modalEditInitCancelBtn');
 
   function openSpendingModal(mode, entryIdx = null) {
+    // Re-select all modal elements to ensure correct references after month changes
+    let entryModal = document.getElementById('buduiEntryModal');
+    let modalEdit = document.getElementById('modalEntryEdit');
+    let modalInfo = document.getElementById('modalEntryInfo');
+    let modalEditDesc = document.getElementById('modalEditDesc');
+    let modalEditAmt = document.getElementById('modalEditAmt');
+    let modalEditConfirmBtn = document.getElementById('modalEditConfirmBtn');
+    const modalEditBtnRow = document.getElementById('modalEditBtnRow');
+    const modalEditInitBtnRow = document.getElementById('modalEditInitBtnRow');
+    const modalInfoBtnRow = document.getElementById('modalInfoBtnRow');
+    if (!entryModal || !modalEdit || !modalInfo || !modalEditDesc || !modalEditAmt || !modalEditConfirmBtn) {
+      alert('Spending modal not found.'); return;
+    }
     entryModal.style.display = 'flex';
     // Position modal at current viewport scroll position
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     entryModal.style.top = scrollTop + 'px';
     // Prevent body scrolling while modal is open
     document.body.style.overflow = 'hidden';
-    const modalEditBtnRow = document.getElementById('modalEditBtnRow');
-    const modalEditInitBtnRow = document.getElementById('modalEditInitBtnRow');
-    const modalInfoBtnRow = document.getElementById('modalInfoBtnRow');
     if (mode === 'add') {
       modalEdit.style.display = 'flex';
       modalInfo.style.display = 'none';
@@ -1518,50 +1836,6 @@ document.querySelectorAll('.budui-accordion-btn.main-cat').forEach(btn => {
       }
       disturbBubbles(x, y);
     };
-    /*
-    window.addEventListener('mousedown', disturbHandler);
-    window.addEventListener('touchstart', function(e) {
-      lastTouch = e.touches && e.touches.length ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() } : null;
-      disturbHandler(e);
-    });
-    window.addEventListener('keydown', () => disturbBubbles());
-
-    // Touchmove event: give directional momentum to bubbles and override tap disruption
-    window.addEventListener('touchmove', function(e) {
-      // Swiping effect with inverted direction
-      if (!lastTouch || !e.touches || !e.touches.length) return;
-      const x = e.touches[0].clientX;
-      const y = e.touches[0].clientY;
-      const dx = x - lastTouch.x;
-      const dy = y - lastTouch.y;
-      const mag = Math.sqrt(dx*dx + dy*dy);
-      if (mag < 2) return; // Ignore tiny moves
-      // Invert the direction
-      const angle = Math.atan2(-dy, -dx);
-      bubbles.forEach(b => {
-        let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-        b.vx = Math.cos(angle) * speed;
-        b.vy = Math.sin(angle) * speed;
-      });
-      skipNextTapDisturb = true;
-      lastTouch = { x, y, t: Date.now() };
-    }, { passive: true });
-
-    // Scroll event: give directional momentum to bubbles and override tap disruption
-    window.addEventListener('wheel', function(e) {
-      const mag = Math.sqrt(e.deltaX * e.deltaX + e.deltaY * e.deltaY);
-      if (mag === 0) return;
-      const angle = Math.atan2(e.deltaY, e.deltaX);
-      // Change direction only, keep speed, add small push
-      bubbles.forEach(b => {
-        let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-        speed += BUBBLE_PUSH;
-        b.vx = Math.cos(angle) * speed;
-        b.vy = Math.sin(angle) * speed;
-      });
-      skipNextTapDisturb = true;
-    }, { passive: true });
-    */
   }
   
   if (document.readyState === 'loading') {
