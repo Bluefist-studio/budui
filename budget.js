@@ -280,6 +280,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide selector modal if open
         const selectMonthModal = document.getElementById('selectMonthModal');
         if (selectMonthModal) selectMonthModal.style.display = 'none';
+        // Populate source month dropdown
+        const sourceMonthSelect = document.getElementById('sourceMonthSelect');
+        if (sourceMonthSelect) {
+          sourceMonthSelect.innerHTML = '';
+          const user = auth.currentUser;
+          if (user) {
+            db.collection('users').doc(user.uid).collection('budget').get().then(snap => {
+              snap.forEach(doc => {
+                const opt = document.createElement('option');
+                opt.value = doc.id;
+                opt.textContent = doc.id;
+                sourceMonthSelect.appendChild(opt);
+              });
+              // Default to 'default' if present, else first
+              if (sourceMonthSelect.querySelector('option[value="default"]')) {
+                sourceMonthSelect.value = 'default';
+              }
+            });
+          }
+        }
         addNewMonthModal.style.display = 'block';
         newMonthInput.focus();
       };
@@ -293,10 +313,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!user) { alert('No user logged in'); return; }
         let monthName = newMonthInput.value.trim();
         if (!monthName) { alert('Please enter a month name.'); return; }
-        // Copy default data to new month document, reset paid status and remove spending
-        const defaultDoc = await db.collection('users').doc(user.uid).collection('budget').doc('default').get();
-        if (!defaultDoc.exists) { alert('No default data found!'); return; }
-        let newMonthData = JSON.parse(JSON.stringify(defaultDoc.data()));
+        // Copy selected source month data to new month document, reset paid status and remove spending
+        const sourceMonthSelect = document.getElementById('sourceMonthSelect');
+        let sourceMonth = 'default';
+        if (sourceMonthSelect && sourceMonthSelect.value) {
+          sourceMonth = sourceMonthSelect.value;
+        }
+        const sourceDoc = await db.collection('users').doc(user.uid).collection('budget').doc(sourceMonth).get();
+        if (!sourceDoc.exists) { alert('No data found for selected month!'); return; }
+        let newMonthData = JSON.parse(JSON.stringify(sourceDoc.data()));
         // Reset paid status for all categories
         const catNames = ['income', 'housing', 'transport', 'savings', 'others', 'multi-media'];
         for (const cat of catNames) {
