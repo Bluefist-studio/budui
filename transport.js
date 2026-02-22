@@ -176,16 +176,22 @@ async function saveTransportToFirestore() {
     }
     return { label, first, second, total, firstPaid, secondPaid };
   });
-  await db.collection('users').doc(user.uid).collection('budget').doc('transport').set({ categories });
+  // Save to the currently selected month document
+  const docRef = db.collection('users').doc(user.uid).collection('budget').doc(currentMonth);
+  const docSnap = await docRef.get();
+  const data = docSnap.exists ? docSnap.data() : {};
+  data.transport = { categories };
+  await docRef.set(data);
 }
 
 async function loadTransportFromFirestore() {
   const user = auth.currentUser;
   if (!user) { console.log('No user logged in'); return; }
-  const doc = await db.collection('users').doc(user.uid).collection('budget').doc('transport').get();
-  if (!doc.exists) { console.log('No transport doc found'); return; }
-  const { categories } = doc.data();
-  console.log('Loaded transport categories from Firestore:', categories);
+  // Load from the currently selected month document
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+  if (!doc.exists || !doc.data().transport) { console.log('No transport data found in default doc'); return; }
+  const { categories } = doc.data().transport;
+  console.log('Loaded transport categories from unified Firestore:', categories);
   const transportPanel = document.querySelector('#transportCategoryBtn')?.nextElementSibling;
   if (!transportPanel || !categories) { console.log('Transport panel or categories missing'); return; }
   const blocks = Array.from(transportPanel.querySelectorAll('.budui-block'));
