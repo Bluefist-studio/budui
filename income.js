@@ -186,16 +186,22 @@ async function saveIncomeToFirestore() {
     }
     return { label, first, second, total, firstPaid, secondPaid };
   });
-  await db.collection('users').doc(user.uid).collection('budget').doc('income').set({ categories });
+  // Save to the currently selected month document
+  const docRef = db.collection('users').doc(user.uid).collection('budget').doc(currentMonth);
+  const docSnap = await docRef.get();
+  const data = docSnap.exists ? docSnap.data() : {};
+  data.income = { categories };
+  await docRef.set(data);
 }
 
 async function loadIncomeFromFirestore() {
   const user = auth.currentUser;
   if (!user) { console.log('No user logged in'); return; }
-  const doc = await db.collection('users').doc(user.uid).collection('budget').doc('income').get();
-  if (!doc.exists) { console.log('No income doc found'); return; }
-  const { categories } = doc.data();
-  console.log('Loaded categories from Firestore:', categories);
+  // Load from the currently selected month document
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+  if (!doc.exists || !doc.data().income) { console.log('No income data found in default doc'); return; }
+  const { categories } = doc.data().income;
+  console.log('Loaded categories from unified Firestore:', categories);
   const incomePanel = document.querySelector('#incomeCategoryBtn').nextElementSibling;
   if (!incomePanel || !categories) { console.log('Income panel or categories missing'); return; }
   const blocks = Array.from(incomePanel.querySelectorAll('.budui-block'));
