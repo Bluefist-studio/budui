@@ -12,6 +12,7 @@ async function saveSpendingToFirestore() {
     ...((await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get()).data() || {}),
     spending: { entries: spendingEntries }
   });
+  if (typeof updateSummaryTotals === 'function') updateSummaryTotals();
 }
 
 async function loadSpendingFromFirestore() {
@@ -145,6 +146,7 @@ function attachSpendingHandlers() {
       }
       saveSpendingToFirestore();
       renderSpendingList();
+      if (typeof updateSummaryTotals === 'function') updateSummaryTotals();
       closeSpendingModal();
     };
   }
@@ -155,6 +157,7 @@ function attachSpendingHandlers() {
           spendingEntries.splice(editingSpendingIndex, 1);
           saveSpendingToFirestore();
           renderSpendingList();
+          if (typeof updateSummaryTotals === 'function') updateSummaryTotals();
           closeSpendingModal();
         });
       }
@@ -175,6 +178,7 @@ function attachSpendingHandlers() {
       }
       saveSpendingToFirestore();
       renderSpendingList();
+      if (typeof updateSummaryTotals === 'function') updateSummaryTotals();
       closeSpendingModal();
     };
   }
@@ -206,6 +210,7 @@ function attachSpendingHandlers() {
           spendingEntries.splice(editingSpendingIndex, 1);
           saveSpendingToFirestore();
           renderSpendingList();
+          if (typeof updateSummaryTotals === 'function') updateSummaryTotals();
           closeSpendingModal();
         });
       }
