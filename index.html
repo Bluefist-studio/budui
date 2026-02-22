@@ -1,3 +1,16 @@
+      <!-- Modal for adding a new month -->
+      <div id="addNewMonthModal" class="budui-modal" style="display:none;">
+        <div class="budui-modal-content" style="max-width:100%; margin: 32px; z-index:1100;">
+          <div style="display:flex; flex-direction:column; gap:10px; align-items:center; width:100%;">
+            <h2 style="margin-bottom:16px; font-size: 20px;">Create New Month</h2>
+            <input id="newMonthInput" class="budui-input" placeholder="e.g. Apr 26" style="width:100%; margin-bottom:16px;" />
+            <div class="budui-modal-btn-row" id="addNewMonthBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
+              <button class="budui-action-btn" id="confirmAddNewMonthBtn">Create</button>
+              <button class="budui-action-btn budui-modal-cancel-btn" id="cancelAddNewMonthBtn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
     <!-- Inline warning message area is now inside the profile accordion below -->
   <!-- Modal for entry actions -->
   <div id="buduiEntryModal" class="budui-modal" style="display:none;">
@@ -8,8 +21,10 @@
         <input id="modalEditAmt" class="budui-input" placeholder="$0.00" type="text" inputmode="decimal">
         <!-- Add mode: Add/Cancel -->
         <div class="budui-modal-btn-row" id="modalEditBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:none;">
-          <button class="budui-action-btn" id="modalEditConfirmBtn">Add</button>
-          <button class="budui-action-btn" id="closeEntryModal">Cancel</button>
+          <div class="budui-modal-edit-row">
+            <button class="budui-action-btn" id="modalEditConfirmBtn">Add</button>
+            <button class="budui-action-btn budui-modal-cancel-btn" id="closeEntryModal">Cancel</button>
+          </div>
         </div>
         <!-- Initial Edit mode: Save/Delete/Cancel -->
         <div class="budui-modal-btn-row" id="modalEditInitBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:none;">
@@ -48,6 +63,7 @@
 </head>
 
 
+<script src="spending.js"></script>
 <script src="budget.js"></script>
 <script src="others.js"></script>
 <script src="savings.js"></script>
@@ -58,6 +74,31 @@
 
 
 <body class="pipboy-theme">
+  <!-- Modal for selecting/loading a month (moved outside appView for consistent overlay effect) -->
+  <div id="selectMonthModal" class="budui-modal" style="display:none;">
+    <div class="budui-modal-content" style="max-width:100%; margin:32px;">
+      <div style="display:flex; flex-direction:column; gap:10px; align-items:center; width:100%;">
+        <h2 style="margin-bottom:16px;">Select Month</h2>
+        <select id="monthSelect" class="budui-input" style="width:100%; margin-bottom:16px;"></select>
+        <div class="budui-modal-btn-row" id="monthAddBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
+          <div class="budui-modal-edit-row">
+            <button class="budui-action-btn" id="addNewMonthBtn">Add Month</button>
+          </div>
+        </div>
+        <div class="budui-modal-btn-row" id="monthSelectBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
+          <div class="budui-modal-edit-row">
+            <button class="budui-action-btn" id="confirmSelectMonthBtn">Load</button>
+            <button class="budui-action-btn budui-modal-cancel-btn" id="cancelSelectMonthBtn">Cancel</button>
+          </div>
+        </div>
+        <div class="budui-modal-btn-row" id="monthDeleteBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
+          <div class="budui-modal-edit-row" style="display:flex; justify-content:center; width:90%;">
+            <button class="budui-action-btn" id="deleteMonthBtn" style="background:#c33; display:none;">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 <!-- <body class="pipboy-theme" data-theme="winter">
 <body class="pipboy-theme" data-theme="minimal">
 <body class="pipboy-theme" data-theme="stranger">
@@ -159,6 +200,9 @@
     <!-- Help Button centered below logo -->
     <div style="text-align:center; margin-bottom:10px;">
       <button id="helpReticleBtn" onclick="document.body.style.overflow='hidden';document.getElementById('buduiTutorialOverlay').style.display='block'">Help<span class="reticle-bottom-left"></span><span class="reticle-bottom-right"></span></button>
+    </div>
+    <div style="text-align:center; margin-bottom:10px;">
+      <span id="currentMonthDisplay" style="font-size:20px; cursor:pointer; color:#4ad; background:#232a36; padding:6px 18px; border-radius:8px; display:inline-block;">Month: default</span>
     </div>
     
     <div class="budui-progress-bar-wrapper">
