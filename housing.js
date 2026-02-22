@@ -179,16 +179,22 @@ async function saveHousingToFirestore() {
     // Otherwise, save all user-entered values as-is
     return { label, first, second, total, firstPaid, secondPaid };
   });
-  await db.collection('users').doc(user.uid).collection('budget').doc('housing').set({ categories });
+  // Save to the currently selected month document
+  const docRef = db.collection('users').doc(user.uid).collection('budget').doc(currentMonth);
+  const docSnap = await docRef.get();
+  const data = docSnap.exists ? docSnap.data() : {};
+  data.housing = { categories };
+  await docRef.set(data);
 }
 
 async function loadHousingFromFirestore() {
   const user = auth.currentUser;
   if (!user) { console.log('No user logged in'); return; }
-  const doc = await db.collection('users').doc(user.uid).collection('budget').doc('housing').get();
-  if (!doc.exists) { console.log('No housing doc found'); return; }
-  const { categories } = doc.data();
-  console.log('Loaded housing categories from Firestore:', categories);
+  // Load from the currently selected month document
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+  if (!doc.exists || !doc.data().housing) { console.log('No housing data found in default doc'); return; }
+  const { categories } = doc.data().housing;
+  console.log('Loaded housing categories from unified Firestore:', categories);
   const housingPanel = document.querySelector('#housingCategoryBtn').nextElementSibling;
   if (!housingPanel || !categories) { console.log('Housing panel or categories missing'); return; }
   const blocks = Array.from(housingPanel.querySelectorAll('.budui-block'));
