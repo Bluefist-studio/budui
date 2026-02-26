@@ -134,7 +134,7 @@ async function loadAllCategoriesFromFirestore(docName = 'default') {
   loadCategories('#multimediaCategoryBtn', data['multi-media']?.categories);
 }
 // --- Global month state ---
-let currentMonth = 'default';
+let currentMonth = localStorage.getItem('budgetCurrentMonth') || 'default';
 // --- Theme Selector Logic ---
 document.addEventListener('DOMContentLoaded', function() {
   // --- Spending logic initialization ---
@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selected = monthSelect.value;
         if (!selected) return;
         currentMonth = selected;
+        localStorage.setItem('budgetCurrentMonth', currentMonth);
         updateCurrentMonthDisplay();
         selectMonthModal.style.display = 'none';
         await loadAllCategoriesFromFirestore(currentMonth);
