@@ -1,915 +1,1878 @@
-      <!-- Modal for adding a new month -->
-      <div id="addNewMonthModal" class="budui-modal" style="display:none;">
-        <div class="budui-modal-content" style="max-width:100%; margin: 32px; z-index:1100;">
-          <div style="display:flex; flex-direction:column; gap:10px; align-items:center; width:100%;">
-            <h2 style="margin-bottom:16px; font-size: 20px;">Create New Month</h2>
-            <input id="newMonthInput" class="budui-input" placeholder="e.g. Apr 26" style="width:100%; margin-bottom:8px;" />
-            <select id="sourceMonthSelect" class="budui-input" style="width:100%; margin-bottom:16px;"></select>
-            <div class="budui-modal-btn-row" id="addNewMonthBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
-              <button class="budui-action-btn" id="confirmAddNewMonthBtn">Create</button>
-              <button class="budui-action-btn budui-modal-cancel-btn" id="cancelAddNewMonthBtn">Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    <!-- Inline warning message area is now inside the profile accordion below -->
-  <!-- Modal for entry actions -->
-  <div id="buduiEntryModal" class="budui-modal" style="display:none;">
-    <div class="budui-modal-content">
-      <!-- Add/Edit fields -->
-      <div id="modalEntryEdit" style="display:none; flex-direction:column; gap:10px; align-items:center; width:100%;">
-        <input id="modalEditDesc" class="budui-input" placeholder="Description">
-        <input id="modalEditAmt" class="budui-input" placeholder="$0.00" type="text" inputmode="decimal">
-        <!-- Add mode: Add/Cancel -->
-        <div class="budui-modal-btn-row" id="modalEditBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:none;">
-          <div class="budui-modal-edit-row">
-            <button class="budui-action-btn" id="modalEditConfirmBtn">Add</button>
-            <button class="budui-action-btn budui-modal-cancel-btn" id="closeEntryModal">Cancel</button>
-          </div>
-        </div>
-        <!-- Initial Edit mode: Save/Delete/Cancel -->
-        <div class="budui-modal-btn-row" id="modalEditInitBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:none;">
-          <div class="budui-modal-edit-row">
-            <button class="budui-action-btn" id="modalEditInitBtn">Save</button>
-            <button class="budui-action-btn" id="modalEditInitDeleteBtn">Delete</button>
-            <button class="budui-action-btn budui-modal-cancel-btn" id="modalEditInitCancelBtn">Cancel</button>
-          </div>    
-        </div>
-      </div>
-      <!-- Info view -->
-      <div id="modalEntryInfo" class="budui-modal-entry-info">
-        <div id="modalEntryDesc"></div>
-        <div id="modalEntryAmount"></div>
-        <div class="budui-modal-btn-row" id="modalInfoBtnRow" style="justify-content:center; gap:18px; margin-top:10px;">
-          <button class="budui-action-btn" id="modalEditBtn">Edit</button>
-          <button class="budui-action-btn" id="modalDeleteBtn">Delete</button>
-        </div>
-      </div>
-    </div>
-  </div>
+// --- Migration Script: Combine old category docs into unified 'default' doc ---
+async function migrateOldBudgetDataToUnifiedDefault() {
+  const user = auth.currentUser;
+  if (!user) { alert('No user logged in'); return; }
+  const catNames = ['income', 'housing', 'transport', 'savings', 'others', 'multi-media'];
+  const data = {};
+  for (const cat of catNames) {
+    const doc = await db.collection('users').doc(user.uid).collection('budget').doc(cat).get();
+    data[cat] = doc.exists ? { categories: doc.data().categories || [] } : { categories: [] };
+  }
+  await db.collection('users').doc(user.uid).collection('budget').doc('default').set(data);
+  alert('Migration complete! All categories are now in the unified default document.');
+}
+// --- Migration Script: Combine old spending docs into unified 'default' doc ---
+async function migrateOldSpendingToUnifiedDefault() {
+  const user = auth.currentUser;
+  if (!user) { alert('No user logged in'); return; }
+  // Assume old spending docs are named 'spending', 'spending_1', 'spending_2', etc.
+  const spendingEntries = [];
+  const budgetColl = db.collection('users').doc(user.uid).collection('budget');
+  const snap = await budgetColl.get();
+  snap.forEach(doc => {
+    if (doc.id.startsWith('spending')) {
+      const data = doc.data();
+      if (data && Array.isArray(data.entries)) {
+        spendingEntries.push(...data.entries);
+      }
+    }
+  });
+  // Save combined spending entries to 'default' doc
+  const defaultDocRef = budgetColl.doc('default');
+  const defaultDoc = await defaultDocRef.get();
+  let defaultData = defaultDoc.exists ? defaultDoc.data() : {};
+  defaultData.spending = { entries: spendingEntries };
+  await defaultDocRef.set(defaultData);
+  alert('Spending migration complete! All entries are now in the unified default document.');
+}
+// --- Unified Firestore Save/Load for All Categories ---
+async function saveAllCategoriesToFirestore(docName = 'default') {
+  const user = auth.currentUser;
+  if (!user) return;
+  // Helper to extract categories from a panel
+  function extractCategories(panelSelector, maxBlocks = 10) {
+    const panel = document.querySelector(panelSelector)?.nextElementSibling;
+    if (!panel) return [];
+    const blocks = Array.from(panel.querySelectorAll('.budui-block'));
+    return blocks.slice(0, maxBlocks).map(block => {
+      const labelInput = block.querySelector('.budui-edit-category-label');
+      const halfFields = block.querySelectorAll('.budui-half');
+      const totalField = block.querySelector('.budui-total');
+      let label = labelInput ? labelInput.value.trim() : '';
+      let first = halfFields[0] ? halfFields[0].value : '';
+      let second = halfFields[1] ? halfFields[1].value : '';
+      let total = totalField ? totalField.value : '';
+      let firstPaid = halfFields[0] ? halfFields[0].classList.contains('budui-paid') : false;
+      let secondPaid = halfFields[1] ? halfFields[1].classList.contains('budui-paid') : false;
+      if (!label || label === 'Sub-category') {
+        label = 'Sub-category';
+        first = '';
+        second = '';
+        total = '';
+        firstPaid = false;
+        secondPaid = false;
+      }
+      return { label, first, second, total, firstPaid, secondPaid };
+    });
+  }
 
-  
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BUDGET UI</title>
-  <!-- Add Comic Neue web font for Comic Sans-like appearance on all devices -->
-  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="pipboybNG.css">
-  <link rel="stylesheet" href="budui-quick-form-stacked.css">
-</head>
-
-
-<script src="spending.js"></script>
-<script src="budget.js"></script>
-<script src="others.js"></script>
-<script src="savings.js"></script>
-<script src="multi-media.js"></script>
-<script src="housing.js"></script>
-<script src="income.js"></script>
-<script src="transport.js"></script>
-
-
-<body class="pipboy-theme">
-  <!-- Modal for selecting/loading a month (moved outside appView for consistent overlay effect) -->
-  <div id="selectMonthModal" class="budui-modal" style="display:none;">
-    <div class="budui-modal-content" style="max-width:100%; margin:32px;">
-      <div style="display:flex; flex-direction:column; gap:10px; align-items:center; width:100%;">
-        <h2 style="margin-bottom:16px;">Select Month</h2>
-        <select id="monthSelect" class="budui-input" style="width:100%; margin-bottom:16px;"></select>
-        <div class="budui-modal-btn-row" id="monthAddBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
-          <div class="budui-modal-edit-row">
-            <button class="budui-action-btn" id="addNewMonthBtn">Add Month</button>
-          </div>
-        </div>
-        <div class="budui-modal-btn-row" id="monthSelectBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
-          <div class="budui-modal-edit-row">
-            <button class="budui-action-btn" id="confirmSelectMonthBtn">Load</button>
-            <button class="budui-action-btn budui-modal-cancel-btn" id="cancelSelectMonthBtn">Cancel</button>
-          </div>
-        </div>
-        <div class="budui-modal-btn-row" id="monthDeleteBtnRow" style="justify-content:center; gap:18px; margin-bottom:0; display:flex;">
-          <div class="budui-modal-edit-row" style="display:flex; justify-content:center; width:90%;">
-            <button class="budui-action-btn" id="deleteMonthBtn" style="background:#c33; display:none;">Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-<!-- <body class="pipboy-theme" data-theme="winter">
-<body class="pipboy-theme" data-theme="minimal">
-<body class="pipboy-theme" data-theme="stranger">
-<body class="pipboy-theme" data-theme="halloween">
-<body class="pipboy-theme" data-theme="google">
-<body class="pipboy-theme" data-theme="synthwave"> -->
-
-
-<div id="terminal" style="position: relative;">
-  
-
-
-  <div id="header">
-    <pre class="ascii-logo">BUDGET UI</pre>
-  </div>
-
-
-
-    <!-- Tutorial Overlay Modal -->
-        <div id="buduiTutorialOverlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#232a36; z-index:9999;">
-          <div style="background:#232a36; color:#ccc; width:100%; max-height:100vh; overflow-y:auto; border-radius:16px; box-shadow:0 0 24px #1e2b3c; padding:32px 24px; position:relative; box-sizing:border-box;">
-        <button onclick="document.body.style.overflow='';document.getElementById('buduiTutorialOverlay').style.display='none'" style="position:absolute; top:18px; right:18px; font-size:22px; border:none; background:#dbe2ea; color:#2a2a2a; border-radius:8px; padding:4px 16px; cursor:pointer;">Close</button>
-        <h1 style="color:#ccc; margin-top: 50px;">Budget UI Tutorial & Help</h1>
-        <p>Welcome to the Budget UI help overlay! This guide will walk you through the main features and functionalities of the Budget UI application, designed to help you manage your biweekly budget effectively.</p>
-        <h2 style="color:#ccc;">Math & Biweekly Budget Cycle</h2>
-        <ul>
-          <li>All calculations are based on a two-week period, matching most payroll schedules.</li>
-          <li>For each category, the app adds the "First" and "Second" amount fields. The <b>Total</b> field is their sum of both payment fields.</li>
-          <li><b>Income Forecast</b> and <b>Expense Forecast</b> show expected totals for the period. <b>Account Balance</b> is <b>Income Forecast - Expense Forecast</b> and should match what is currently in your account.</li>
-          <li><b>Expenses Remaining</b> shows how much expense budget is left after paid expenses (<b>Expense Forecast - Paid Expenses</b>).</li>
-          <li>The<b> Progress Bar</b> visually shows remaining budget vs. spending.</li>
-        </ul>
-        <h2 style="color:#ccc;">Income Section</h2>
-        <ul>
-          <li>Expand/collapse the section with the accordion button.</li>
-          <li>Lock/unlock fields to prevent accidental edits and allow marking income as received.</li>
-          <li>Edit category names and enter amounts for each income source.</li>
-          <li>Totals update automatically.</li>
-        </ul>
-        <h2 style="color:#ccc;">Expense Section</h2>
-        <ul>
-          <li>Expand/collapse expense categories (e.g., Housing, Transport).</li>
-          <li>Lock/unlock fields for each category to prevent accidental edits and allow marking expenses as paid.</li>
-          <li>Edit category names and enter amounts for each expense type.</li>
-          <li>Totals update automatically.</li>
-        </ul>
-        <h3 style="color:#ccc;">Sub-Category Placeholders</h3>
-        <ul>
-          <li>Some categories include empty fields labeled "Sub-category." Type a name and amount to make them visible and included in calculations.</li>
-          <li>Clear the name and amount to hide unused sub-categories and keep your budget tidy.</li>
-        </ul>
-        <h2 style="color:#ccc;">How to Edit Your Budget</h2>
-        <ol>
-          <li>Expand the section you want to edit.</li>
-          <li>Unlock fields.</li>
-          <li>Edit category names or enter new amounts.</li>
-          <li>Totals update automatically. Review the summary bar for changes.</li>
-          <li>Lock fields when finished.</li>
-        </ol>
-        <h2 style="color:#ccc;">Paid Mechanic</h2>
-        <ul>
-          <li>Mark expenses as <b>paid</b> for the current biweekly period to track which bills have been settled.</li>
-          <li>While the section is locked, click an expense entry to mark it as paid. Paid expenses are visually highlighted and deducted from the <b>Expenses Remaining</b> total.</li>
-          <li>This helps you avoid double-paying and gives a clear view of what still needs to be paid.</li>
-          <li><b>Monthly Payments:</b> For bills that are paid only once a month (e.g., rent, insurance), the app tracks their payment status within the biweekly cycle. If a monthly payment is marked as paid in one biweekly period, both biweekly periods are updated accordingly. This ensures you only pay these bills once per month and prevents confusion.</li>
-          <li><b>Reset All Paid Status Button:</b> In the profile menu, use this button to clear the paid status for all expenses and income entries in the current cycle. This is useful at the start of a new month, allowing you to begin tracking payments from scratch. Be careful: resetting will mark all entries as unpaid, so only use it when you want to start fresh.</li>
-        </ul>
-      </div>
-    </div>
-
-
-
-
-
-  <!-- LOGIN/CREATE VIEW -->
-  <div id="loginView" class="view">
-    <div class="line">USERNAME:</div>
-    <input id="loginUser" autocomplete="off">
-
-    <div class="line">EMAIL:</div>
-    <input id="loginEmail" type="email" autocomplete="off">
-
-    <div class="line">PIN:</div>
-    <input id="loginPin" type="password">
-
-    <div class="login-btn-row">
-      <button id="loginBtn">LOGIN</button>
-      <button id="createBtn">CREATE USER</button>
-    </div>
-    <div id="loginError" class="error"></div>
-  </div>
-
-
-
-  <!-- Future Budget UI views go here, hidden by default -->
-  <div id="appView" class="view hidden">
-    <!-- Logo (already at top via ascii-logo) -->
-    
-    <!-- Help Button centered below logo -->
-    <div style="text-align:center; margin-bottom:10px;">
-      <button id="helpReticleBtn" onclick="document.body.style.overflow='hidden';document.getElementById('buduiTutorialOverlay').style.display='block'">Help<span class="reticle-bottom-left"></span><span class="reticle-bottom-right"></span></button>
-    </div>
-    <div style="text-align:center; margin-bottom:10px;">
-      <span id="currentMonthDisplay" class="budui-month-display" style="font-size:20px; cursor:pointer; padding:6px 18px; border-radius:8px; display:inline-block;">Month: default</span>
-    </div>
-    
-    <div class="budui-progress-bar-wrapper">
-      <div class="budui-progress-labels">
-        <span>Remaining</span>
-        <span>Spending</span>
-      </div>
-      <div class="budui-progress-bar-bg">
-        <div class="budui-progress-bar-fill" id="buduiProgressBar" style="width: 50%"></div>
-      </div>
-      <div class="budui-progress-values">
-        <span id="buduiRemainingForecast">$0.00</span>
-        <span id="buduiProgressSpending">$0.00</span>
-      </div>
-    </div>
-    <div class="budui-summary-bar">
-      <div class="budui-summary-card">
-        <div class="budui-summary-label">Expense Forecast</div>
-        <div class="budui-summary-value" id="buduiExpenses">$0.00</div>
-      </div>
-      <div class="budui-summary-card">
-        <div class="budui-summary-label">Income Forecast</div>
-        <div class="budui-summary-value" id="buduiIncome">$0.00</div>
-      </div>
-      <div class="budui-summary-card">
-        <div class="budui-summary-label">Expenses Remaining</div>
-        <div class="budui-summary-value" id="buduiexpensesCurrent">$0.00</div>
-      </div>
-      <div class="budui-summary-card">
-        <div class="budui-summary-label">Account Balance</div>
-        <div class="budui-summary-value" id="buduiRemainingCurrent">$0.00</div>
-      </div>
-    </div>
-
-
-    <!-- main accordion -->
-    <div class="budui-accordion-col" gap="24px" >
-
-        <!-- INCOME -->
-      <button class="budui-accordion-btn main-cat" id="incomeCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
-        Incomes
-      </button>
-      <div class="budui-accordion-panel">
-        <div class="budui-block" style="margin-bottom:24px; position:relative;">
-          <button id="lock-income" class="budui-lock-btn" onclick="toggleLockIncome()" title="Lock/Unlock Fields">
-            <span id="lock-income-icon">🔓</span>
-          </button>
-        </div>
-        <div class="budui-block" style="margin-bottom:24px;">
-          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Salary" />
-          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-          </div>
-        </div>
-        <div class="budui-block" style="margin-bottom:24px;">
-          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Bonus" />
-          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-          </div>
-        </div>
-        <div class="budui-block" style="margin-bottom:24px;">
-          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Investments" />
-          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-          </div>
-        </div>
-        <div class="budui-block" style="margin-bottom:24px;">
-          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Side Hustle" />
-          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-          </div>
-        </div>
-        <div class="budui-block" style="margin-bottom:24px;">
-          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Other" />
-          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-          </div>
-        </div>
-        <div class="budui-block" style="margin-bottom:24px;">
-          <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-          <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-            <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-            <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-          </div>
-        </div>
-      </div>
-
-
-
-
-
-      <!-- EXPENSE -->
-      <button class="budui-accordion-btn main-cat" id="expensesCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
-        Expenses
-      </button>
-      <div class="budui-accordion-panel budui-accordion-col" style="display:none; border:none; box-shadow:none; background:transparent;">
-          <button class="budui-accordion-btn.cat" id="housingCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
-          Housing <span id="housingCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span>
-          </button>
-          <div class="budui-accordion-panel">
-              <div class="budui-block" style="margin-bottom:24px; position:relative;">
-                <button id="lock-housing" class="budui-lock-btn" onclick="toggleLockHousing()" title="Lock/Unlock Fields">
-                <span id="lock-housing-icon">🔓</span>
-                </button>
-              </div>
-            <div class="budui-block" style="margin-bottom:24px; position:relative;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Mortgage" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div> 
-          <div class="budui-block" style="margin-bottom:24px; position:relative;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="House insurance" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Property Taxes" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Electricity" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Water" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Cleaning" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Food" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-          </div>
-          </div>        
-          
-          <!-- transport -->
-          <button class="budui-accordion-btn.cat" id="transportCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
-                  Transport <span id="transportCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span>
-                </button>
-          <div class="budui-accordion-panel">
-            <div class="budui-block" style="margin-bottom:24px; position:relative;">
-              <button id="lock-transport" class="budui-lock-btn" onclick="toggleLockTransport()" title="Lock/Unlock Fields">
-                <span id="lock-transport-icon">🔓</span>
-              </button>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Car Payments" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Car Insurance" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Gas" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Maintenance" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Registration" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Other" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-          </div>
-
-          <!-- multi-media -->
-          <button class="budui-accordion-btn.cat" id="multimediaCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
-            Multi-media <span id="multimediaCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span>
-          </button>
-          <div class="budui-accordion-panel">
-              <div class="budui-block" style="margin-bottom:24px; position:relative;">
-                  <button id="lock-multi-media" class="budui-lock-btn" onclick="toggleLockMultiMedia()" title="Lock/Unlock Fields">
-                  <span id="lock-multi-media-icon">🔓</span>
-                  </button>
-                </div>
-              <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Rogers" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Prime" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Prime Channel" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Netflix" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Kindle" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Telus" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Spotify" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Disney+" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Microsoft" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Apple Bill" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Apple" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <!-- 4 placeholders -->
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-          </div>
-
-
-
-
-          <!-- savings -->
-          <button class="budui-accordion-btn.cat" id="savingsCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">Savings <span id="savingsCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span></button>
-          <div class="budui-accordion-panel">
-            <div class="budui-block" style="margin-bottom:24px; position:relative;">
-              <button id="lock-savings" class="budui-lock-btn" onclick="toggleLockSavings()" title="Lock/Unlock Fields">
-                <span id="lock-savings-icon">🔓</span>
-              </button>
-              </div>
-              <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="RESP" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Investments" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Life Insurance" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Travel" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Home" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="ISA" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Events" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Emergency" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-              <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-              <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-                <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-                <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-              </div>
-            </div>
-          </div>
-
-
-
-
-
-        <!--- Others Section -->
-        <button class="budui-accordion-btn.cat" id="othersCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">Others <span id="othersCategoryTotalBtn" style="font-size:24px; color:inherit;">$0.00</span></button>
-        <div class="budui-accordion-panel">
-          <div class="budui-block" style="margin-bottom:24px; position:relative;">
-            <button id="lock-others" class="budui-lock-btn" onclick="toggleLockOthers()" title="Lock/Unlock Fields">
-              <span id="lock-others-icon">🔓</span>
-            </button>
-            </div>
-            <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Service Fees" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Chiro" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Credit Card" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Orthodontis" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Renovation" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="Misc." />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-          <div class="budui-block" style="margin-bottom:24px;">
-            <input class="budui-edit-category-label" style="display:block; margin:0 auto 8px auto; font-size:20px; text-align:center; width:180px;" value="" placeholder="Sub-category" />
-            <div class="budui-amount-row" style="display:flex; justify-content:center; gap:12px;">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="First" type="number" step="0.01">
-              <input class="budui-edit-amount budui-half" style="width:100px; font-size:16px; text-align:center;" placeholder="Second" type="number" step="0.01">
-              <input class="budui-edit-amount budui-total" style="width:110px; font-size:16px; text-align:center;" placeholder="Total" type="number" step="0.01" value="0.00" readonly>
-            </div>
-          </div>
-        </div>
-       
-    </div>
-
-        <!-- SPENDING CATEGORY -->
-        <button class="budui-accordion-btn main-cat" id="spendingCategoryBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%;">
-        Spending
-        </button>
-        <div class="budui-accordion-panel" id="spendingAccordionPanel">
-            <button class="budui-action-btn" id="addSpendingBtn">Add Spending</button>
-            <div id="spendingList" class="budui-list-placeholder">No spending entries yet.</div>
-            <div class="budui-list-total" id="spendingPanelTotal">Total: $0.00</div>
-        </div>
-        <!-- PROFILE ACCORDION -->
-        <button class="budui-accordion-btn main-cat" id="profileAccordionBtn" onclick="buduiToggleAccordion(this)" style="display:flex; justify-content:space-between; align-items:center; text-align:left; padding-right:16px; width:100%; margin-top:18px;">
-          Settings <!-- Former Profile -->
-        </button>
-        <div class="budui-accordion-panel" id="profileAccordionPanel">
-          <div style="padding: 18px 8px; text-align: center;">
-            <div style="filter: none !important;">
-              <button class="budui-action-btn" id="resetPaidStatusBtn" style="margin-bottom: 16px;">Reset All Paid Status</button>
-              <button id="deleteAllSpendingBtn" class="budui-action-btn" style="margin:10px 0 20px 0;display:block;margin-left:auto;margin-right:auto;">Delete All Spending</button>
-              <button class="budui-action-btn" id="logoutBtn" style="background: #ff3939; color: #fff;">Logout</button>
-            </div>
-            <div style="margin: 28px 0 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-              <label for="hueRotateSlider" style="font-size: 22px; color: var(--color-accent); margin-bottom: 10px; display: inline-flex; align-items: center; gap: 12px;">Adjust App Hue <span id="hueRotateValue">0°</span></label>
-              <input type="range" id="hueRotateSlider" min="0" max="350" value="0" class="hue-slider" style="height: 32px; margin-bottom: 18px;">
-              
-              <!-- <button class="budui-action-btn" id="resetHueBtn" style="font-size: 20px; padding: 10px 32px;">Reset Hue</button> -->
-            </div>
-            <div id="themeSelector" style="display:flex; align-items:center; justify-content:center; gap:16px; margin:10px 0 20px 0;">
-              <button id="themeLeftArrow" class="budui-action-btn" style="padding: 6px 16px; font-size: 22px;">&#8592;</button>
-              <span id="themeName" style="min-width: 100px; text-align:center; font-size: 20px; color: var(--color-accent);">Theme</span>
-              <button id="themeRightArrow" class="budui-action-btn" style="padding: 6px 16px; font-size: 22px;">&#8594;</button>
-            </div>
-            <!-- <div id="themeDebug" style="text-align:center; color:#888; font-size:14px; margin-bottom:10px;"></div>-->
-            <button class="budui-action-btn" id="toggleBubbleUiBtn" style="margin:10px 0 20px 0;display:block;margin-left:auto;margin-right:auto;">Screen Saver</button>
-            <!-- Inline warning message area at the bottom of the profile accordion -->
-            <div id="buduiWarningMsg" style="display:none; color:#ff3939; background:rgba(255,57,57,0.08); border:1px solid #ff3939; border-radius:6px; padding:8px 12px; margin:18px auto 0 auto; max-width:400px; text-align:center; font-size:16px;"></div>
-          </div>
-        </div>
-    </div>
-</div>
-
-
-    <div id="dashboardContent"></div>
-
-
-  <div class="pip-status">
-    <span class="pip-dots"></span><br>
-    Initialized.55.MUTH.BUDUI
-  </div>
-
-</div>
-
-
-
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBe_0oWH02bKiXSpOz3IlHtYuJSbMesVz0",
-    authDomain: "activlog-data.firebaseapp.com",
-    projectId: "activlog-data",
-    storageBucket: "activlog-data.firebasestorage.app",
-    messagingSenderId: "133406753052",
-    appId: "1:133406753052:web:7235a682366924334d3ad9",
-    measurementId: "G-BRVDJ841WX"
+  const data = {
+    income: { categories: extractCategories('#incomeCategoryBtn', 6) },
+    housing: { categories: extractCategories('#housingCategoryBtn', 10) },
+    transport: { categories: extractCategories('#transportCategoryBtn', 10) },
+    savings: { categories: extractCategories('#savingsCategoryBtn', 10) },
+    others: { categories: extractCategories('#othersCategoryBtn', 10) },
+    'multi-media': { categories: extractCategories('#multimediaCategoryBtn', 15) }
   };
+  await db.collection('users').doc(user.uid).collection('budget').doc(docName).set(data);
+}
 
-  firebase.initializeApp(firebaseConfig);
-  window.auth = firebase.auth();
-  window.db = firebase.firestore();
-</script>
-</script>
-
-
-
-  <script>
-    function buduiToggleAccordion(btn) {
-      const panel = btn.nextElementSibling;
-      if (!panel) return;
-      const isOpen = panel.style.display === 'block';
-      // If already open, close it and remove selected visual
-      if (isOpen) {
-        panel.style.display = 'none';
-        btn.classList.remove('open');
-        // Also close all nested child panels and buttons inside
-        panel.querySelectorAll('.budui-accordion-panel').forEach(p => p.style.display = 'none');
-        panel.querySelectorAll('.budui-accordion-btn').forEach(b => b.classList.remove('open'));
+async function loadAllCategoriesFromFirestore(docName = 'default') {
+  const user = auth.currentUser;
+  if (!user) return;
+  const doc = await db.collection('users').doc(user.uid).collection('budget').doc(docName).get();
+  if (!doc.exists) return;
+  const data = doc.data();
+  // Helper to load categories into a panel
+  function loadCategories(panelSelector, categories = []) {
+    const panel = document.querySelector(panelSelector)?.nextElementSibling;
+    if (!panel || !categories) return;
+    const blocks = Array.from(panel.querySelectorAll('.budui-block'));
+    blocks.forEach((block, i) => {
+      const cat = categories[i];
+      const labelInput = block.querySelector('.budui-edit-category-label');
+      const halfFields = block.querySelectorAll('.budui-half');
+      const totalField = block.querySelector('.budui-total');
+      if (!cat || !cat.label || cat.label === 'Sub-category') {
+        if (labelInput) labelInput.value = 'Sub-category';
+        if (halfFields[0]) halfFields[0].value = '', halfFields[0].classList.remove('budui-paid');
+        if (halfFields[1]) halfFields[1].value = '', halfFields[1].classList.remove('budui-paid');
+        if (totalField) totalField.value = '';
+        // Hide if locked
+        const isLocked = block.closest('.budui-accordion-panel')?.previousElementSibling?.dataset?.locked === 'true';
+        block.style.display = isLocked ? 'none' : '';
         return;
       }
-      // Only close sibling panels (same parent container), not all panels globally
-      const parent = btn.parentElement;
-      if (parent) {
-        parent.querySelectorAll(':scope > .budui-accordion-panel').forEach(p => {
-          p.style.display = 'none';
-          // Also close any nested panels inside siblings being closed
-          p.querySelectorAll('.budui-accordion-panel').forEach(nested => nested.style.display = 'none');
-          p.querySelectorAll('.budui-accordion-btn').forEach(nestedBtn => nestedBtn.classList.remove('open'));
-        });
-        parent.querySelectorAll(':scope > .budui-accordion-btn').forEach(b => b.classList.remove('open'));
+      if (labelInput) labelInput.value = cat.label;
+      if (halfFields[0]) {
+        halfFields[0].value = cat.first;
+        if (cat.firstPaid) halfFields[0].classList.add('budui-paid');
+        else halfFields[0].classList.remove('budui-paid');
       }
-      // Open this panel and set selected visual
-      panel.style.display = 'block';
-      btn.classList.add('open');
-      // Scroll button to top of viewport
-      btn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (halfFields[1]) {
+        halfFields[1].value = cat.second;
+        if (cat.secondPaid) halfFields[1].classList.add('budui-paid');
+        else halfFields[1].classList.remove('budui-paid');
+      }
+      if (totalField) totalField.value = cat.total;
+      block.style.display = '';
+    });
+    // Hide all 'Sub-category' blocks after loading
+    blocks.forEach(block => {
+      const labelInput = block.querySelector('.budui-edit-category-label');
+      if (labelInput && labelInput.value.trim().toLowerCase() === 'sub-category') {
+        block.style.display = 'none';
+      }
+    });
+    updateBudgetAccordionTotals();
+  }
+  loadCategories('#incomeCategoryBtn', data.income?.categories);
+  loadCategories('#housingCategoryBtn', data.housing?.categories);
+  loadCategories('#transportCategoryBtn', data.transport?.categories);
+  loadCategories('#savingsCategoryBtn', data.savings?.categories);
+  loadCategories('#othersCategoryBtn', data.others?.categories);
+  loadCategories('#multimediaCategoryBtn', data['multi-media']?.categories);
+}
+// --- Global month state ---
+let currentMonth = localStorage.getItem('budgetCurrentMonth') || 'default';
+// --- Theme Selector Logic ---
+document.addEventListener('DOMContentLoaded', function() {
+  // --- Spending logic initialization ---
+  if (window.spending) {
+    window.spending.attachSpendingHandlers();
+    window.spending.loadSpendingFromFirestore();
+  }
+  const currentMonthDisplay = document.getElementById('currentMonthDisplay');
+  const selectMonthModal = document.getElementById('selectMonthModal');
+  const monthSelect = document.getElementById('monthSelect');
+  const confirmSelectMonthBtn = document.getElementById('confirmSelectMonthBtn');
+  const cancelSelectMonthBtn = document.getElementById('cancelSelectMonthBtn');
+  const deleteMonthBtn = document.getElementById('deleteMonthBtn');
+
+      function updateCurrentMonthDisplay() {
+        if (currentMonthDisplay) currentMonthDisplay.textContent = currentMonth;
+      }
+      updateCurrentMonthDisplay();
+
+      // Show/hide delete button based on selected month
+      function updateDeleteMonthBtn() {
+        if (!deleteMonthBtn) return;
+        const selected = monthSelect.value;
+        if (selected && selected !== 'default') {
+          deleteMonthBtn.style.display = 'inline-block';
+        } else {
+          deleteMonthBtn.style.display = 'none';
+        }
+      }
+      monthSelect.addEventListener('change', updateDeleteMonthBtn);
+      // Also call after populating
+      setTimeout(updateDeleteMonthBtn, 100);
+
+  // Move spending functions above month selection handler
+  // --- Spending logic now in spending.js ---
+  // Use window.spending methods for all spending operations
+  // Example usage:
+  // window.spending.loadSpendingFromFirestore();
+  // window.spending.saveSpendingToFirestore();
+  // window.spending.renderSpendingList();
+  // window.spending.openSpendingModal(mode, entryIdx);
+  // window.spending.closeSpendingModal();
+  // window.spending.attachSpendingHandlers();
+
+  if (currentMonthDisplay && selectMonthModal && monthSelect && confirmSelectMonthBtn && cancelSelectMonthBtn) {
+      currentMonthDisplay.onclick = async function() {
+        // Show modal and populate month list
+        monthSelect.innerHTML = '';
+        const user = auth.currentUser;
+        if (!user) { alert('No user logged in'); return; }
+        const snap = await db.collection('users').doc(user.uid).collection('budget').get();
+        snap.forEach(doc => {
+          const opt = document.createElement('option');
+          opt.value = doc.id;
+          opt.textContent = doc.id;
+          monthSelect.appendChild(opt);
+        });
+        monthSelect.value = currentMonth;
+        selectMonthModal.style.display = 'block';
+        updateDeleteMonthBtn();
+      };
+      cancelSelectMonthBtn.onclick = function() {
+        selectMonthModal.style.display = 'none';
+      };
+      confirmSelectMonthBtn.onclick = async function() {
+        const selected = monthSelect.value;
+        if (!selected) return;
+        currentMonth = selected;
+        localStorage.setItem('budgetCurrentMonth', currentMonth);
+        updateCurrentMonthDisplay();
+        selectMonthModal.style.display = 'none';
+        await loadAllCategoriesFromFirestore(currentMonth);
+        updateAllCategoryTotalsPaidStatus();
+        updateIncomeTotalsPaidStatus();
+        spendingReady = false;
+        if (window.spending && typeof window.spending.loadSpendingFromFirestore === 'function') {
+          await window.spending.loadSpendingFromFirestore();
+          window.spending.attachSpendingHandlers();
+        } else {
+          alert('Spending module not loaded. Please check spending.js inclusion order.');
+        }
+      };
+
+      // Delete month logic with two-step confirmation
+      if (deleteMonthBtn) {
+        let deleteMonthConfirmState = false;
+        let deleteMonthConfirmTimeout = null;
+        deleteMonthBtn.onclick = async function() {
+          const selected = monthSelect.value;
+          if (!selected || selected === 'default') return;
+          if (deleteMonthConfirmState) {
+            // Second click: perform delete
+            deleteMonthBtn.textContent = 'Delete';
+            deleteMonthBtn.classList.remove('delete-confirm-active');
+            deleteMonthConfirmState = false;
+            clearTimeout(deleteMonthConfirmTimeout);
+            const user = auth.currentUser;
+            if (!user) { alert('No user logged in'); return; }
+            try {
+              await db.collection('users').doc(user.uid).collection('budget').doc(selected).delete();
+              // Remove from dropdown
+              const opt = monthSelect.querySelector('option[value="' + selected + '"]');
+              if (opt) opt.remove();
+              // Reset to default month
+              currentMonth = 'default';
+              monthSelect.value = 'default';
+              updateCurrentMonthDisplay();
+              await loadAllCategoriesFromFirestore('default');
+              updateAllCategoryTotalsPaidStatus();
+              updateIncomeTotalsPaidStatus();
+              if (window.spending && typeof window.spending.loadSpendingFromFirestore === 'function') {
+                await window.spending.loadSpendingFromFirestore();
+                window.spending.attachSpendingHandlers();
+              }
+              updateDeleteMonthBtn();
+              selectMonthModal.style.display = 'none';
+            } catch (err) {
+              alert('Error deleting month: ' + err.message);
+            }
+          } else {
+            // First click: ask for confirmation
+            deleteMonthBtn.textContent = 'Confirm?';
+            deleteMonthBtn.classList.add('delete-confirm-active');
+            deleteMonthConfirmState = true;
+            clearTimeout(deleteMonthConfirmTimeout);
+            deleteMonthConfirmTimeout = setTimeout(() => {
+              deleteMonthBtn.textContent = 'Delete';
+              deleteMonthBtn.classList.remove('delete-confirm-active');
+              deleteMonthConfirmState = false;
+            }, 3000);
+          }
+        };
+      }
+  }
+    // Add New Month button handler (modal)
+    const addNewMonthBtn = document.getElementById('addNewMonthBtn');
+    const addNewMonthModal = document.getElementById('addNewMonthModal');
+    const newMonthInput = document.getElementById('newMonthInput');
+    const confirmAddNewMonthBtn = document.getElementById('confirmAddNewMonthBtn');
+    const cancelAddNewMonthBtn = document.getElementById('cancelAddNewMonthBtn');
+    if (addNewMonthBtn && addNewMonthModal && newMonthInput && confirmAddNewMonthBtn && cancelAddNewMonthBtn) {
+      addNewMonthBtn.onclick = function() {
+        newMonthInput.value = '';
+        // Hide selector modal if open
+        const selectMonthModal = document.getElementById('selectMonthModal');
+        if (selectMonthModal) selectMonthModal.style.display = 'none';
+        // Populate source month dropdown
+        const sourceMonthSelect = document.getElementById('sourceMonthSelect');
+        if (sourceMonthSelect) {
+          sourceMonthSelect.innerHTML = '';
+          const user = auth.currentUser;
+          if (user) {
+            db.collection('users').doc(user.uid).collection('budget').get().then(snap => {
+              snap.forEach(doc => {
+                const opt = document.createElement('option');
+                opt.value = doc.id;
+                opt.textContent = doc.id;
+                sourceMonthSelect.appendChild(opt);
+              });
+              // Default to 'default' if present, else first
+              if (sourceMonthSelect.querySelector('option[value="default"]')) {
+                sourceMonthSelect.value = 'default';
+              }
+            });
+          }
+        }
+        addNewMonthModal.style.display = 'block';
+        newMonthInput.focus();
+      };
+      cancelAddNewMonthBtn.onclick = function() {
+        addNewMonthModal.style.display = 'none';
+        const selectMonthModal = document.getElementById('selectMonthModal');
+        if (selectMonthModal) selectMonthModal.style.display = 'block';
+      };
+      confirmAddNewMonthBtn.onclick = async function() {
+        const user = auth.currentUser;
+        if (!user) { alert('No user logged in'); return; }
+        let monthName = newMonthInput.value.trim();
+        if (!monthName) { alert('Please enter a month name.'); return; }
+        // Copy selected source month data to new month document, reset paid status and remove spending
+        const sourceMonthSelect = document.getElementById('sourceMonthSelect');
+        let sourceMonth = 'default';
+        if (sourceMonthSelect && sourceMonthSelect.value) {
+          sourceMonth = sourceMonthSelect.value;
+        }
+        const sourceDoc = await db.collection('users').doc(user.uid).collection('budget').doc(sourceMonth).get();
+        if (!sourceDoc.exists) { alert('No data found for selected month!'); return; }
+        let newMonthData = JSON.parse(JSON.stringify(sourceDoc.data()));
+        // Reset paid status for all categories
+        const catNames = ['income', 'housing', 'transport', 'savings', 'others', 'multi-media'];
+        for (const cat of catNames) {
+          if (newMonthData[cat] && Array.isArray(newMonthData[cat].categories)) {
+            newMonthData[cat].categories.forEach(item => {
+              item.firstPaid = false;
+              item.secondPaid = false;
+            });
+          }
+        }
+        // Remove spending entries
+        newMonthData.spending = { entries: [] };
+        await db.collection('users').doc(user.uid).collection('budget').doc(monthName).set(newMonthData);
+        addNewMonthModal.style.display = 'none';
+        const selectMonthModal = document.getElementById('selectMonthModal');
+        if (selectMonthModal) selectMonthModal.style.display = 'none';
+        // Immediately load the new month
+        currentMonth = monthName;
+        updateCurrentMonthDisplay();
+        await loadAllCategoriesFromFirestore(currentMonth);
+        updateAllCategoryTotalsPaidStatus();
+        updateIncomeTotalsPaidStatus();
+        spendingReady = false;
+        if (window.spending && typeof window.spending.loadSpendingFromFirestore === 'function') {
+          await window.spending.loadSpendingFromFirestore();
+          window.spending.attachSpendingHandlers();
+        }
+      };
+    }
+  const themes = [
+    { name: 'Pipboy', value: '' },
+    { name: 'Bubble', value: 'winter' },
+    { name: 'Comic', value: 'minimal' },
+    // { name: 'Halloween', value: 'halloween' },
+    { name: 'Script', value: 'google' },
+    // { name: 'Synthwave', value: 'synthwave' },
+  ];
+  const themeSelector = document.getElementById('themeSelector');
+  const leftArrow = document.getElementById('themeLeftArrow');
+  const rightArrow = document.getElementById('themeRightArrow');
+  const themeName = document.getElementById('themeName');
+  const body = document.body;
+  let currentThemeIdx = 0;
+
+  // Load from localStorage if available
+  function getSavedThemeIdx() {
+    try {
+      const saved = localStorage.getItem('budui_theme_idx');
+      if (saved !== null) {
+        const idx = parseInt(saved, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < themes.length) return idx;
+      }
+    } catch (e) {}
+    return 0;
+  }
+
+  function saveThemeIdx(idx) {
+    try { localStorage.setItem('budui_theme_idx', idx); } catch (e) {}
+  }
+
+  function applyTheme(idx) {
+    const theme = themes[idx];
+    // Remove any previous data-theme
+    if (theme.value) {
+      body.setAttribute('data-theme', theme.value);
+    } else {
+      body.removeAttribute('data-theme');
+    }
+    themeName.textContent = theme.name;
+    currentThemeIdx = idx;
+    saveThemeIdx(idx);
+
+    // Debug info
+    const debug = document.getElementById('themeDebug');
+    if (debug) {
+      debug.textContent = `Theme: ${theme.name} (${theme.value || 'classic'})`;
     }
 
-    // Auto-calculate total for each row
-    document.addEventListener('input', function(e) {
-      if (e.target.classList.contains('budui-half')) {
-        const row = e.target.closest('.budui-row');
-        if (!row) return;
-        const halves = row.querySelectorAll('.budui-half');
-        const total = row.querySelector('.budui-total');
-        if (halves.length === 2 && total) {
-          const v1 = parseFloat(halves[0].value) || 0;
-          const v2 = parseFloat(halves[1].value) || 0;
-          total.value = (v1 + v2).toFixed(2);
+    // --- Re-run theme-specific effects (like bubbles) ---
+    if (typeof window.buduiThemeEffectReload === 'function') {
+      window.buduiThemeEffectReload();
+    }
+  }
+// --- Theme effect reload hook ---
+window.buduiThemeEffectReload = function() {
+  // Remove any existing bubble containers
+  document.querySelectorAll('.bubble-container').forEach(el => el.remove());
+  // Cancel any running animation
+  if (window.animationId) {
+    cancelAnimationFrame(window.animationId);
+    window.animationId = null;
+  }
+  // Clear bubbles array and container if available
+  if (window.bubbles && Array.isArray(window.bubbles)) {
+    window.bubbles.length = 0;
+  }
+  if (typeof window.container !== 'undefined') {
+    window.container = null;
+  }
+  // Only apply bubble effect if winter theme is active
+  const themeEl = document.body.classList.contains('pipboy-theme') ? document.body : document.querySelector('.pipboy-theme');
+  if (!themeEl) return;
+  const isWinter = themeEl.getAttribute('data-theme') === 'winter';
+  if (!isWinter) return;
+  if (typeof createBubbles === 'function') createBubbles();
+  if (typeof animateBubbles === 'function') animateBubbles();
+};
+
+  function nextTheme() {
+    let idx = (currentThemeIdx + 1) % themes.length;
+    applyTheme(idx);
+  }
+  function prevTheme() {
+    let idx = (currentThemeIdx - 1 + themes.length) % themes.length;
+    applyTheme(idx);
+  }
+
+  if (themeSelector && leftArrow && rightArrow && themeName) {
+    // Initialize
+    let idx = getSavedThemeIdx();
+    applyTheme(idx);
+    leftArrow.addEventListener('click', prevTheme);
+    rightArrow.addEventListener('click', nextTheme);
+  }
+});
+// Ensure Income total paid status is updated live on value or paid status change
+document.addEventListener('input', function(e) {
+  if (e.target.closest('#incomeCategoryBtn + .budui-accordion-panel')) {
+    updateIncomeTotalsPaidStatus();
+  }
+});
+// Ensure paid status rule is enforced live across all categories
+document.addEventListener('input', function(e) {
+  if (e.target.classList.contains('budui-half')) {
+    updateAllCategoryTotalsPaidStatus();
+  }
+});
+document.addEventListener('click', function(e) {
+  // If a paid toggle or .budui-half is clicked in income, update paid status after a short delay
+  const isPaidToggle = e.target.classList.contains('budui-paid-toggle');
+  const isHalf = e.target.classList.contains('budui-half');
+  const inIncome = (e.target.closest('#incomeCategoryBtn + .budui-accordion-panel') !== null);
+  if ((isPaidToggle || isHalf) && inIncome) {
+    setTimeout(updateIncomeTotalsPaidStatus, 20);
+  }
+});
+document.addEventListener('click', function(e) {
+  // If a paid toggle or .budui-half is clicked in any category, update paid status after a short delay
+  const isPaidToggle = e.target.classList.contains('budui-paid-toggle');
+  const isHalf = e.target.classList.contains('budui-half');
+  if (isPaidToggle || isHalf) {
+    setTimeout(updateAllCategoryTotalsPaidStatus, 20);
+  }
+});
+
+function updateIncomeTotalsPaidStatus() {
+  const incomePanel = document.querySelector('#incomeCategoryBtn')?.nextElementSibling;
+  if (!incomePanel) return;
+  incomePanel.querySelectorAll('.budui-block').forEach(block => {
+    const first = block.querySelectorAll('.budui-half')[0];
+    const second = block.querySelectorAll('.budui-half')[1];
+    const totalField = block.querySelector('.budui-total');
+    if (first && second && totalField) {
+      const firstFilled = first.value.trim() !== '';
+      const secondFilled = second.value.trim() !== '';
+      let firstPaid = first.classList.contains('budui-paid');
+      let secondPaid = second.classList.contains('budui-paid');
+      let paid = false;
+      // Rule logic
+      if (firstFilled && firstPaid && !secondFilled) {
+        paid = true;
+        second.classList.add('budui-paid');
+        secondPaid = true;
+      } else if (!firstFilled && secondFilled && secondPaid) {
+        paid = true;
+        first.classList.add('budui-paid');
+        firstPaid = true;
+      } else if (firstFilled && secondFilled && firstPaid && secondPaid) {
+        paid = true;
+      }
+      if (paid) {
+        totalField.classList.add('budui-paid');
+      } else {
+        totalField.classList.remove('budui-paid');
+      }
+    }
+  });
+}
+function updateAllCategoryTotalsPaidStatus() {
+  const allPanels = [
+    document.querySelector('#incomeCategoryBtn')?.nextElementSibling,
+    document.querySelector('#housingCategoryBtn')?.nextElementSibling,
+    document.querySelector('#expensesCategoryBtn')?.nextElementSibling,
+    document.querySelector('#transportCategoryBtn')?.nextElementSibling,
+    document.querySelector('#multimediaCategoryBtn')?.nextElementSibling,
+    document.querySelector('#savingsCategoryBtn')?.nextElementSibling,
+    document.querySelector('#othersCategoryBtn')?.nextElementSibling
+  ].filter(Boolean);
+  allPanels.forEach(panel => {
+    panel.querySelectorAll('.budui-block').forEach(block => {
+      const first = block.querySelectorAll('.budui-half')[0];
+      const second = block.querySelectorAll('.budui-half')[1];
+      const totalField = block.querySelector('.budui-total');
+      if (first && second && totalField) {
+        const firstFilled = first.value.trim() !== '';
+        const secondFilled = second.value.trim() !== '';
+        let firstPaid = first.classList.contains('budui-paid');
+        let secondPaid = second.classList.contains('budui-paid');
+        let paid = false;
+        // Rule logic
+        if (firstFilled && firstPaid && !secondFilled) {
+          paid = true;
+          second.classList.add('budui-paid');
+          secondPaid = true;
+        } else if (!firstFilled && secondFilled && secondPaid) {
+          paid = true;
+          first.classList.add('budui-paid');
+          firstPaid = true;
+        } else if (firstFilled && secondFilled && firstPaid && secondPaid) {
+          paid = true;
+        }
+        // Unset logic
+        if (firstFilled && firstPaid && !secondFilled && !first.classList.contains('budui-paid')) {
+          second.classList.remove('budui-paid');
+        }
+        if (!firstFilled && secondFilled && secondPaid && !second.classList.contains('budui-paid')) {
+          first.classList.remove('budui-paid');
+        }
+        if (firstFilled && firstPaid && !secondFilled && !firstPaid) {
+          second.classList.remove('budui-paid');
+        }
+        if (!firstFilled && secondFilled && secondPaid && !secondPaid) {
+          first.classList.remove('budui-paid');
+        }
+        // If first is set to unpaid, both second and total are unpaid
+        if (firstFilled && !firstPaid && !secondFilled) {
+          second.classList.remove('budui-paid');
+          totalField.classList.remove('budui-paid');
+          paid = false;
+        }
+        // If second is set to unpaid, both first and total are unpaid
+        if (!firstFilled && secondFilled && !secondPaid) {
+          first.classList.remove('budui-paid');
+          totalField.classList.remove('budui-paid');
+          paid = false;
+        }
+        if (paid) {
+          totalField.classList.add('budui-paid');
+        } else {
+          totalField.classList.remove('budui-paid');
         }
       }
     });
-  </script>
+  });
+}
+// Show inline warning/confirmation at bottom of profile accordion, require second click/tap to confirm
+let buduiWarnState = { pending: null, confirmed: false };
+function showWarningMsg(msg, actionCallback) {
+  const warnDiv = document.getElementById('buduiWarningMsg');
+  if (!warnDiv) return;
+  warnDiv.innerHTML = msg + '<br>';
+  const confirmBtn = document.createElement('button');
+  confirmBtn.textContent = 'Confirm';
+  confirmBtn.className = 'budui-action-btn';
+  confirmBtn.style.marginTop = '10px';
+  confirmBtn.onclick = async function(e) {
+    spendingReady = false;
+    e.stopPropagation();
+    warnDiv.style.display = 'none';
+    warnDiv.innerHTML = '';
+    if (typeof actionCallback === 'function') actionCallback();
+    const user = auth.currentUser;
+    if (!user) return;
+    await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).set({ ...((await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get()).data() || {}), spending: { entries: [] } });
+    spendingEntries = [];
+    if (typeof renderSpendingList === 'function') renderSpendingList();
+    if (typeof loadSpendingFromFirestore === 'function') await loadSpendingFromFirestore();
+    spendingReady = true;
+  };
+  warnDiv.appendChild(confirmBtn);
+  warnDiv.style.display = 'block';
+  warnDiv.style.cursor = 'default';
+  warnDiv.onclick = null;
+  setTimeout(() => {
+    warnDiv.style.display = 'none';
+    warnDiv.innerHTML = '';
+  }, 10000);
+}
+
+// Delete confirmation - "click again to confirm" pattern
+let deleteConfirmState = {};
+let deleteConfirmTimeout = null;
+
+function setupDeleteConfirm(button, onConfirm) {
+  const buttonId = button.id || button.textContent;
+  
+  if (deleteConfirmState[buttonId]) {
+    // Second click - execute delete
+    clearTimeout(deleteConfirmTimeout);
+    deleteConfirmState[buttonId] = false;
+    button.textContent = button.dataset.originalText || 'Delete';
+    button.classList.remove('delete-confirm-active');
+    onConfirm();
+  } else {
+    // First click - ask for confirmation
+    // Reset any other buttons in confirm state
+    Object.keys(deleteConfirmState).forEach(key => {
+      deleteConfirmState[key] = false;
+    });
+    
+    deleteConfirmState[buttonId] = true;
+    button.dataset.originalText = button.textContent;
+    button.textContent = 'Confirm?';
+    button.classList.add('delete-confirm-active');
+    
+    // Reset after 3 seconds
+    clearTimeout(deleteConfirmTimeout);
+    deleteConfirmTimeout = setTimeout(() => {
+      deleteConfirmState[buttonId] = false;
+      button.textContent = button.dataset.originalText || 'Delete';
+      button.classList.remove('delete-confirm-active');
+    }, 3000);
+  }
+}
+
+// PROFILE ACCORDION BUTTONS LOGIC
+document.addEventListener("DOMContentLoaded", function() {
+  // Collapse profile accordion on login
+  const profilePanel = document.getElementById("profileAccordionPanel");
+  if (profilePanel) profilePanel.style.display = "none";
+  const resetPaidStatusBtn = document.getElementById("resetPaidStatusBtn");
+  const deleteAllSpendingBtn = document.getElementById("deleteAllSpendingBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  // Attach Screen Saver (Bubble UI) logic to static button
+  const toggleBtn = document.getElementById('toggleBubbleUiBtn');
+  if (toggleBtn) {
+    let uiHidden = false;
+    let prevMinHeight = null;
+    let returnBtn = null;
+    toggleBtn.onclick = function() {
+      const appView = document.getElementById('appView');
+      if (!appView) return;
+      Array.from(appView.children).forEach(child => {
+        if (child === profilePanel) return;
+        if (child.classList && child.classList.contains('bubble-container')) return;
+        if (!uiHidden) {
+          child.dataset._bubbleUiDisplay = child.style.display;
+          child.style.display = 'none';
+        } else {
+          child.style.display = child.dataset._bubbleUiDisplay || '';
+        }
+      });
+      if (!uiHidden) {
+        prevMinHeight = appView.style.minHeight;
+        appView.style.minHeight = '625px';
+        // Add floating Return button
+        if (!returnBtn) {
+          returnBtn = document.createElement('button');
+          returnBtn.id = 'bubbleReturnBtn';
+          returnBtn.textContent = 'Return';
+          returnBtn.className = 'budui-action-btn';
+          returnBtn.style.position = 'fixed';
+          returnBtn.style.left = '50%';
+          returnBtn.style.bottom = '52px';
+          returnBtn.style.transform = 'translateX(-50%)';
+          returnBtn.style.zIndex = '10001';
+          returnBtn.style.padding = '8px 24px';
+          returnBtn.style.fontSize = '1em';
+          returnBtn.style.setProperty('background', 'none', 'important');
+          returnBtn.style.setProperty('border', 'none', 'important');
+          returnBtn.style.setProperty('outline', 'none', 'important');
+          returnBtn.style.setProperty('box-shadow', 'none', 'important');
+          returnBtn.style.setProperty('filter', 'none', 'important');
+          returnBtn.style.setProperty('backdrop-filter', 'none', 'important');
+          returnBtn.style.color = '#e0f4ff99';
+          returnBtn.style.borderRadius = '20px';
+          returnBtn.style.cursor = 'pointer';
+          returnBtn.style.opacity = '0.7';
+          returnBtn.style.transition = 'opacity 0.2s';
+          returnBtn.onmouseenter = () => { returnBtn.style.opacity = '1'; };
+          returnBtn.onmouseleave = () => { returnBtn.style.opacity = '0.7'; };
+          returnBtn.onclick = function(e) {
+            e.stopPropagation();
+            toggleBtn.click(); // Exit bubble mode
+          };
+        }
+        document.body.appendChild(returnBtn);
+      } else {
+        appView.style.minHeight = prevMinHeight || '';
+        if (returnBtn && returnBtn.parentNode) {
+          returnBtn.parentNode.removeChild(returnBtn);
+        }
+      }
+      uiHidden = !uiHidden;
+      toggleBtn.textContent = uiHidden ? 'Show UI' : 'Bubble';
+    };
+  }
+
+  if (resetPaidStatusBtn) {
+    resetPaidStatusBtn.onclick = function() {
+      const warnDiv = document.getElementById('buduiWarningMsg');
+      if (!warnDiv) return;
+      // Position warning directly under the button
+      const btnRect = resetPaidStatusBtn.getBoundingClientRect();
+      warnDiv.style.position = '';
+      warnDiv.style.left = '';
+      warnDiv.style.top = '';
+      warnDiv.style.width = '';
+      warnDiv.style.zIndex = '';
+      warnDiv.style.display = 'block';
+      warnDiv.style.cursor = 'default';
+      warnDiv.style.background = 'rgba(30, 40, 60, 0.97)';
+      warnDiv.style.borderRadius = '8px';
+      warnDiv.style.boxShadow = '0 2px 12px rgba(0,0,0,0.18)';
+      warnDiv.style.padding = '16px 12px';
+      warnDiv.style.textAlign = 'center';
+      warnDiv.style.margin = '16px auto';
+      warnDiv.style.maxWidth = '340px';
+      warnDiv.innerHTML = "Are you sure you want to reset all paid status? This will not delete any values, but will mark all items as unpaid. You can then mark them as paid again as needed. This action cannot be undone.<br>";
+      resetPaidStatusBtn.parentNode.insertBefore(warnDiv, resetPaidStatusBtn.nextSibling);
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'Confirm';
+      confirmBtn.className = 'budui-action-btn';
+      confirmBtn.style.marginTop = '10px';
+      confirmBtn.onclick = async function(e) {
+        e.stopPropagation();
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+        // Remove paid status from all relevant elements
+        document.querySelectorAll('.budui-paid').forEach(el => el.classList.remove('budui-paid'));
+        if (typeof updateBudgetAccordionTotals === 'function') updateBudgetAccordionTotals();
+        // Save all category data to Firestore after reset
+        if (typeof saveIncomeToFirestore === 'function') await saveIncomeToFirestore();
+        if (typeof saveHousingToFirestore === 'function') await saveHousingToFirestore();
+        if (typeof saveTransportToFirestore === 'function') await saveTransportToFirestore();
+        if (typeof saveMultiMediaToFirestore === 'function') await saveMultiMediaToFirestore();
+        if (typeof saveSavingsToFirestore === 'function') await saveSavingsToFirestore();
+        if (typeof saveOthersToFirestore === 'function') await saveOthersToFirestore();
+        // Force update of paid status visuals for Income totals
+        const incomePanel = document.getElementById('incomeCategoryBtn')?.nextElementSibling;
+        if (incomePanel) {
+          incomePanel.querySelectorAll('.budui-block').forEach(block => {
+            const first = block.querySelectorAll('.budui-half')[0];
+            const second = block.querySelectorAll('.budui-half')[1];
+            const totalField = block.querySelector('.budui-total');
+            if (first && second && totalField) {
+              // Re-evaluate paid status for total
+              const firstFilled = first.value.trim() !== '';
+              const secondFilled = second.value.trim() !== '';
+              const firstPaid = first.classList.contains('budui-paid');
+              const secondPaid = second.classList.contains('budui-paid');
+              let paid = false;
+              if ((firstFilled && secondFilled && firstPaid && secondPaid) ||
+                  (firstFilled && firstPaid && !secondFilled) ||
+                  (secondFilled && secondPaid && !firstFilled)) {
+                paid = true;
+              }
+              if (paid) {
+                totalField.classList.add('budui-paid');
+              } else {
+                totalField.classList.remove('budui-paid');
+              }
+            }
+          });
+        }
+        window.location.reload();
+      };
+      warnDiv.appendChild(confirmBtn);
+      setTimeout(() => {
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+      }, 10000);
+    };
+  }
+
+  // Add confirmation logic for deleteAllSpendingBtn
+  if (deleteAllSpendingBtn) {
+    deleteAllSpendingBtn.onclick = function() {
+      const warnDiv = document.getElementById('buduiWarningMsg');
+      if (!warnDiv) return;
+      warnDiv.style.position = '';
+      warnDiv.style.left = '';
+      warnDiv.style.top = '';
+      warnDiv.style.width = '';
+      warnDiv.style.zIndex = '';
+      warnDiv.style.display = 'block';
+      warnDiv.style.cursor = 'default';
+      warnDiv.style.background = 'rgba(30, 40, 60, 0.97)';
+      warnDiv.style.borderRadius = '8px';
+      warnDiv.style.boxShadow = '0 2px 12px rgba(0,0,0,0.18)';
+      warnDiv.style.padding = '16px 12px';
+      warnDiv.style.textAlign = 'center';
+      warnDiv.style.margin = '16px auto';
+      warnDiv.style.maxWidth = '340px';
+      warnDiv.innerHTML = "Are you sure you want to delete ALL spending entries? This will permanently delete all spending data. This action cannot be undone.<br>";
+      deleteAllSpendingBtn.parentNode.insertBefore(warnDiv, deleteAllSpendingBtn.nextSibling);
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'Confirm';
+      confirmBtn.className = 'budui-action-btn';
+      confirmBtn.style.marginTop = '10px';
+      confirmBtn.onclick = async function(e) {
+        e.stopPropagation();
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+        // Delete spending document from Firestore
+        try {
+          if (typeof firebase !== 'undefined' && firebase.firestore) {
+            const user = firebase.auth().currentUser;
+            if (user) {
+              const uid = user.uid;
+              // Use the same path as saveSpendingToFirestore: users/{uid}/budget/spending
+              const spendingDocRef = firebase.firestore().collection('users').doc(uid).collection('budget').doc('spending');
+              await spendingDocRef.delete();
+              // Immediately recreate with empty entries to guarantee wipe
+              await spendingDocRef.set({ entries: [] });
+              // Clear local spendingEntries and UI
+              spendingEntries = [];
+              let spendingReady = true;
+              if (typeof renderSpendingList === 'function') renderSpendingList();
+              const spendingList = document.getElementById('spendingList');
+              if (spendingList) spendingList.innerHTML = 'No spending entries yet.';
+              const spendingPanelTotal = document.getElementById('spendingPanelTotal');
+              if (spendingPanelTotal) spendingPanelTotal.textContent = 'Total: $0.00';
+              window.location.reload();
+            } else {
+              alert('No user is currently signed in.');
+            }
+          } else {
+            alert('Firestore is not available.');
+          }
+        } catch (err) {
+          alert('Error deleting spending data: ' + err.message);
+        }
+      };
+      warnDiv.appendChild(confirmBtn);
+      setTimeout(() => {
+        warnDiv.style.display = 'none';
+        warnDiv.innerHTML = '';
+      }, 10000);
+    };
+  }
+  if (logoutBtn) {
+      logoutBtn.onclick = function() {
+        setupDeleteConfirm(logoutBtn, function() {
+          auth.signOut();
+        });
+      };
+  }
+});
+// ===============================
+// SECTION: Accordion & Lock/Unlock Logic
+// ===============================
+// ===============================LOCK RETURN LOGIC===============================
+// Ensure lock returns to locked by default when exiting the sub-category
+document.addEventListener('DOMContentLoaded', function() {
+  // --- Hue Rotate Filter Controls with localStorage persistence ---
+  const hueSlider = document.getElementById('hueRotateSlider');
+  const hueValue = document.getElementById('hueRotateValue');
+  const resetHueBtn = document.getElementById('resetHueBtn');
+  const pipboyTheme = document.querySelector('.pipboy-theme');
+  let lastHue = 0;
+  function updateHueRotate(val, save = true) {
+    lastHue = val;
+    hueValue.textContent = val + '°';
+    if (pipboyTheme) {
+      let baseFilter = 'brightness(1.08)';
+      pipboyTheme.style.filter = baseFilter + ' hue-rotate(' + val + 'deg)';
+    }
+    if (save) {
+      try { localStorage.setItem('budui_hue_rotate', val); } catch (e) {}
+    }
+  }
+  if (hueSlider && hueValue && pipboyTheme) {
+    // Restore from localStorage if available
+    let savedHue = 0;
+    try {
+      savedHue = parseInt(localStorage.getItem('budui_hue_rotate') || '0', 10);
+      if (isNaN(savedHue)) savedHue = 0;
+    } catch (e) { savedHue = 0; }
+    hueSlider.value = savedHue;
+    updateHueRotate(savedHue, false);
+    hueSlider.addEventListener('input', function() {
+      updateHueRotate(this.value);
+    });
+  }
+  const housingBtn = document.getElementById('housingCategoryBtn');
+  if (housingBtn) {
+    housingBtn.addEventListener('click', function() {
+      setTimeout(() => {
+        const panel = housingBtn.nextElementSibling;
+        if (panel && panel.style.display !== 'block') {
+          const lockBtn = document.getElementById('lock-housing');
+          if (lockBtn && lockBtn.dataset.locked !== 'true') {
+            toggleLockHousing();
+          }
+        }
+      }, 100);
+    });
+  }
+
+  // Ensure lock returns to locked by default when exiting the Transport sub-category
+  const transportBtn = document.getElementById('transportCategoryBtn');
+  if (transportBtn) {
+    transportBtn.addEventListener('click', function() {
+      setTimeout(() => {
+        const panel = transportBtn.nextElementSibling;
+        if (panel && panel.style.display !== 'block') {
+          const lockBtn = document.getElementById('lock-transport');
+          if (lockBtn && lockBtn.dataset.locked !== 'true') {
+            toggleLockTransport();
+          }
+        }
+      }, 100);
+    });
+  }
+
+  // Ensure lock returns to locked by default when exiting the Income sub-category
+  const incomeBtn = Array.from(document.querySelectorAll('.budui-accordion-btn')).find(btn => btn.textContent.trim() === 'Income');
+  if (incomeBtn) {
+    incomeBtn.addEventListener('click', function() {
+      setTimeout(() => {
+        const panel = incomeBtn.nextElementSibling;
+        if (panel && panel.style.display !== 'block') {
+          const lockBtn = document.getElementById('lock-income');
+          if (lockBtn && lockBtn.dataset.locked !== 'true') {
+            toggleLockIncome();
+          }
+        }
+      }, 100);
+    });
+  }
+
+  // Ensure lock returns to locked by default when exiting the Multi-media sub-category
+  const multimediaBtn = document.getElementById('multimediaCategoryBtn');
+  if (multimediaBtn) {
+    multimediaBtn.addEventListener('click', function() {
+      setTimeout(() => {
+        const panel = multimediaBtn.nextElementSibling;
+        if (panel && panel.style.display !== 'block') {
+          const lockBtn = document.getElementById('lock-multi-media');
+          if (lockBtn && lockBtn.dataset.locked !== 'true') {
+            toggleLockMultiMedia();
+          }
+        }
+      }, 100);
+    });
+  }
+
+  // Ensure lock returns to locked by default when exiting the Savings sub-category
+  const savingsBtn = document.getElementById('savingsCategoryBtn');
+  if (savingsBtn) {
+    savingsBtn.addEventListener('click', function() {
+      setTimeout(() => {
+        const panel = savingsBtn.nextElementSibling;
+        if (panel && panel.style.display !== 'block') {
+          const lockBtn = document.getElementById('lock-savings');
+          if (lockBtn && lockBtn.dataset.locked !== 'true') {
+            toggleLockSavings();
+          }
+        }
+      }, 100);
+    });
+  }
+
+  // Ensure lock returns to locked by default when exiting the Others sub-category
+  const othersBtn = document.getElementById('othersCategoryBtn');
+  if (othersBtn) {
+    othersBtn.addEventListener('click', function() {
+      setTimeout(() => {
+        const panel = othersBtn.nextElementSibling;
+        if (panel && panel.style.display !== 'block') {
+          const lockBtn = document.getElementById('lock-others');
+          if (lockBtn && lockBtn.dataset.locked !== 'true') {
+            toggleLockOthers();
+          }
+        }
+      }, 100);
+    });
+  }
+});
+
+
+//===============================UPDATE TOTALS LOGIC=============================
+// When locking/unlocking, update all totals in Budget Categories Accordion
+function updateBudgetAccordionTotals() {
+  // Update all sub-category totals and collect for each main category
+  const mainCats = [
+    { btn: document.getElementById('incomeCategoryTotalBtn'), panel: document.getElementById('incomeCategoryBtn')?.nextElementSibling },
+    { btn: document.getElementById('housingCategoryTotalBtn'), panel: document.getElementById('housingCategoryBtn')?.nextElementSibling },
+    { btn: document.getElementById('expensesCategoryTotalBtn'), panel: document.getElementById('expensesCategoryBtn')?.nextElementSibling },
+    { btn: document.getElementById('transportCategoryTotalBtn'), panel: document.getElementById('transportCategoryBtn')?.nextElementSibling },
+    { btn: document.getElementById('multimediaCategoryTotalBtn'), panel: document.getElementById('multimediaCategoryBtn')?.nextElementSibling },
+    { btn: document.getElementById('savingsCategoryTotalBtn'), panel: document.getElementById('savingsCategoryBtn')?.nextElementSibling },
+    { btn: document.getElementById('othersCategoryTotalBtn'), panel: document.getElementById('othersCategoryBtn')?.nextElementSibling }
+  ];
+
+  mainCats.forEach(cat => {
+    if (!cat.btn || !cat.panel) return;
+    let catTotal = 0;
+    // For Expenses, include all .budui-blocks in the main panel and all sub-panels (multi-media, savings, others)
+    let blocks = Array.from(cat.panel.querySelectorAll('.budui-block'));
+    if (cat.btn.id === 'expensesCategoryTotalBtn') {
+      // Find all .budui-blocks in the main panel and all sibling panels until the next main category
+      let next = cat.panel.nextElementSibling;
+      while (next && next.classList.contains('budui-accordion-panel')) {
+        blocks = blocks.concat(Array.from(next.querySelectorAll('.budui-block')));
+        next = next.nextElementSibling;
+      }
+      // Also include .pip-item.budui-row (for multi-media, savings, others)
+      let pipPanels = [];
+      let pipNext = cat.panel.nextElementSibling;
+      while (pipNext && pipNext.classList.contains('budui-accordion-panel')) {
+        pipPanels.push(pipNext);
+        pipNext = pipNext.nextElementSibling;
+      }
+      pipPanels.forEach(panel => {
+        blocks = blocks.concat(Array.from(panel.querySelectorAll('.pip-item.budui-row')));
+      });
+    }
+    blocks.forEach(block => {
+      // For .budui-block or .pip-item.budui-row
+      const first = block.querySelectorAll('.budui-half')[0];
+      const second = block.querySelectorAll('.budui-half')[1];
+      const totalField = block.querySelector('.budui-total');
+      if (first && second && totalField) {
+        // Always show forecast (sum of both fields)
+        let total = (parseFloat(first.value) || 0) + (parseFloat(second.value) || 0);
+        totalField.value = total.toFixed(2);
+        // Mark total as paid if:
+        // (both values filled and both paid) OR (first filled and paid, second empty) OR (second filled and paid, first empty)
+        const firstFilled = first.value.trim() !== '';
+        const secondFilled = second.value.trim() !== '';
+        const firstPaid = first.classList.contains('budui-paid');
+        const secondPaid = second.classList.contains('budui-paid');
+        let paid = false;
+        if ((firstFilled && secondFilled && firstPaid && secondPaid) ||
+            (firstFilled && firstPaid && !secondFilled) ||
+            (secondFilled && secondPaid && !firstFilled)) {
+          paid = true;
+        }
+        if (paid) {
+          totalField.classList.add('budui-paid');
+        } else {
+          totalField.classList.remove('budui-paid');
+        }
+        catTotal += total;
+      }
+    });
+    cat.btn.textContent = `$${catTotal.toFixed(2)}`;
+  });
+  // Update summary totals
+  updateSummaryTotals();
+}
+
+// Update the summary bar at the top
+function updateSummaryTotals() {
+  // --- Income forecast: sum all income sub-cat totals (ignore paid status)
+  const spendingPanelTotal = document.getElementById('spendingPanelTotal');
+  let incomeForecast = 0;
+  let incomeCurrent = 0;
+  let expensesForecast = 0;
+  let expensesCurrent = 0;
+  let expensesPaidOnly = 0; // Paid expenses from budget (excludes spending)
+  let remainingForecast = 0;
+  let remainingCurrent = 0;
+
+  const incomePanel = document.getElementById('incomeCategoryBtn')?.nextElementSibling;
+  if (incomePanel) {
+    incomePanel.querySelectorAll('.budui-block').forEach(block => {
+      const first = block.querySelectorAll('.budui-half')[0];
+      const second = block.querySelectorAll('.budui-half')[1];
+      if (first && second) {
+        incomeForecast += (parseFloat(first.value) || 0) + (parseFloat(second.value) || 0);
+      }
+    });
+    // --- Income current: sum only paid income sub-cat totals
+    incomePanel.querySelectorAll('.budui-block').forEach(block => {
+      const first = block.querySelectorAll('.budui-half')[0];
+      const second = block.querySelectorAll('.budui-half')[1];
+      if (first && second) {
+        if (first.classList.contains('budui-paid')) incomeCurrent += parseFloat(first.value) || 0;
+        if (second.classList.contains('budui-paid')) incomeCurrent += parseFloat(second.value) || 0;
+      }
+    });
+  }
+
+  // --- Expenses forecast: sum all expense category panels (housing, transport, multi-media, savings, others)
+  const expensePanelSelectors = [
+    '#housingCategoryBtn',
+    '#transportCategoryBtn',
+    '#multimediaCategoryBtn',
+    '#savingsCategoryBtn',
+    '#othersCategoryBtn'
+  ];
+  expensePanelSelectors.forEach(selector => {
+    const panel = document.querySelector(selector)?.nextElementSibling;
+    if (!panel) return;
+    Array.from(panel.querySelectorAll('.budui-block')).forEach(block => {
+      const first = block.querySelectorAll('.budui-half')[0];
+      const second = block.querySelectorAll('.budui-half')[1];
+      if (first && second) {
+        expensesForecast += (parseFloat(first.value) || 0) + (parseFloat(second.value) || 0);
+        if (first.classList.contains('budui-paid')) expensesPaidOnly += parseFloat(first.value) || 0;
+        if (second.classList.contains('budui-paid')) expensesPaidOnly += parseFloat(second.value) || 0;
+      }
+    });
+  });
+
+  // Set expensesCurrent to include both paid budget expenses and spending
+  expensesCurrent = expensesPaidOnly;
+
+  // Add spending ONLY to current (paid) expenses, NOT forecast
+  let spendingValue = 0;
+  if (spendingPanelTotal) {
+    // spendingPanelTotal.textContent is like 'Total: $123.45'
+    const match = spendingPanelTotal.textContent.match(/([\d,\.\-]+)$/);
+    if (match) {
+      spendingValue = parseFloat(match[1].replace(/,/g, '')) || 0;
+    }
+  }
+  expensesCurrent += spendingValue;
+
+  // --- Remaining forecast: income forecast - expenses forecast
+  try {
+    if (typeof incomeForecast !== 'number' || isNaN(incomeForecast)) throw new Error('incomeForecast is not a number');
+    if (typeof expensesForecast !== 'number' || isNaN(expensesForecast)) throw new Error('expensesForecast is not a number');
+    remainingForecast = incomeForecast - expensesForecast;
+    if (typeof incomeCurrent !== 'number' || isNaN(incomeCurrent)) throw new Error('incomeCurrent is not a number');
+    if (typeof expensesCurrent !== 'number' || isNaN(expensesCurrent)) throw new Error('expensesCurrent is not a number');
+    remainingCurrent = incomeCurrent - expensesCurrent;
+  } catch (e) {
+    console.error('[updateSummaryTotals] Calculation error:', e, { incomeForecast, expensesForecast, incomeCurrent, expensesCurrent });
+  }
+
+  // ...existing code...
+
+  // Update summary bar
+  const buduiIncome = document.getElementById('buduiIncome');
+  const buduiExpenses = document.getElementById('buduiExpenses');
+  const buduiRemainingForecast = document.getElementById('buduiRemainingForecast');
+  const buduiRemainingCurrent = document.getElementById('buduiRemainingCurrent');
+  const buduiexpensesCurrent = document.getElementById('buduiexpensesCurrent');
+  if (!buduiIncome) console.warn('[updateSummaryTotals] buduiIncome element not found');
+  if (!buduiExpenses) console.warn('[updateSummaryTotals] buduiExpenses element not found');
+  if (!buduiRemainingForecast) console.warn('[updateSummaryTotals] buduiRemainingForecast element not found');
+  if (!buduiRemainingCurrent) console.warn('[updateSummaryTotals] buduiRemainingCurrent element not found');
+  if (!buduiexpensesCurrent) console.warn('[updateSummaryTotals] buduiexpensesCurrent element not found');
+  if (buduiIncome) buduiIncome.textContent = `$${Number(incomeForecast).toFixed(2)}`;
+  if (buduiExpenses) buduiExpenses.textContent = `$${Number(expensesForecast).toFixed(2)}`;
+  if (buduiRemainingForecast) buduiRemainingForecast.textContent = `$${Number(remainingForecast).toFixed(2)}`;
+  if (buduiRemainingCurrent) buduiRemainingCurrent.textContent = `$${Number(remainingCurrent).toFixed(2)}`;
+  // Expenses Remaining = Expense Forecast - Paid Expenses (from budget only, excludes spending)
+  let expensesRemaining = expensesForecast - expensesPaidOnly;
+  if (expensesRemaining < 0) expensesRemaining = 0;
+  if (buduiexpensesCurrent) buduiexpensesCurrent.textContent = `$${Number(expensesRemaining).toFixed(2)}`;
+
+  // Update progress bar: Remaining Forecast vs Spending total
+  const buduiProgressBar = document.getElementById('buduiProgressBar');
+  const buduiProgressSpending = document.getElementById('buduiProgressSpending');
+  // spendingValue is already declared above and set
+  // Progress bar width: percent of remainingForecast left after spending
+  if (buduiProgressBar) {
+    let barValue = remainingForecast - spendingValue;
+    if (barValue < 0) barValue = 0;
+    let percent = 0;
+    if (remainingForecast > 0) {
+      percent = Math.min(100, (barValue / remainingForecast) * 100);
+    }
+    buduiProgressBar.style.width = percent + '%';
+  }
+  // Progress bar number: show remainingForecast - spending
+  if (buduiRemainingForecast) {
+    let barValue = remainingForecast - spendingValue;
+    if (barValue < 0) barValue = 0;
+    buduiRemainingForecast.textContent = `$${barValue.toFixed(2)}`;
+  }
+  if (buduiProgressSpending) buduiProgressSpending.textContent = `$${spendingValue.toFixed(2)}`;
+}
 
 
 
-</body>
-</html>
+// ===============================
+// SECTION: Helpers
+// ===============================
+
+// Format amounts as currency
+function formatAmount(val) {
+  let num = parseFloat(val);
+  if (isNaN(num)) num = 0;
+  return `$${num.toFixed(2)}`;
+}
+
+
+
+// SECTION: DOM LISTENERS FOR FIREBASE
+// ===============================
+// On DOM ready, set up listeners for loading/saving income
+document.addEventListener("DOMContentLoaded", function() {
+  // --- LOGIN LOGIC ---
+  const loginBtn = document.getElementById("loginBtn");
+  const loginUser = document.getElementById("loginUser");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPin = document.getElementById("loginPin");
+  const loginError = document.getElementById("loginError");
+  if (loginBtn && loginEmail && loginPin && loginError) {
+    loginBtn.addEventListener("click", function() {
+      const email = (loginEmail.value || "").trim();
+      const pin = (loginPin.value || "").trim();
+      if (!email || !pin) {
+        loginError.textContent = "ENTER EMAIL AND PIN";
+        return;
+      }
+      auth.signInWithEmailAndPassword(email, pin)
+        .then(() => {
+          loginError.textContent = "";
+          if (loginUser) loginUser.value = "";
+          loginEmail.value = "";
+          loginPin.value = "";
+        })
+        .catch(err => {
+          console.error(err);
+          loginError.textContent = `${err.code || "ERROR"}: ${err.message || "LOGIN FAILED"}`;
+        });
+    });
+  }
+  // Load income, housing, transport, multi-media, savings, and others from Firestore on login (after DOM is ready)
+  auth.onAuthStateChanged(function(user) {
+    const incomePanel = document.querySelector('#incomeCategoryBtn')?.nextElementSibling;
+    const housingPanel = document.querySelector('#housingCategoryBtn')?.nextElementSibling;
+    const transportPanel = document.querySelector('#transportCategoryBtn')?.nextElementSibling;
+    const multimediaPanel = document.querySelector('#multimediaCategoryBtn')?.nextElementSibling;
+    const savingsPanel = document.querySelector('#savingsCategoryBtn')?.nextElementSibling;
+    const othersPanel = document.querySelector('#othersCategoryBtn')?.nextElementSibling;
+    let loadsToComplete = 6;
+    function onSectionLoaded() {
+      loadsToComplete--;
+      if (loadsToComplete === 0) {
+        // All data loaded, now update all totals and UI
+        if (typeof updateBudgetAccordionTotals === 'function') updateBudgetAccordionTotals();
+        if (typeof updateSummaryTotals === 'function') updateSummaryTotals();
+        // Force update of paid status visuals for all category totals (using new rule)
+        const allPanels = [
+          document.querySelector('#incomeCategoryBtn')?.nextElementSibling,
+          document.querySelector('#housingCategoryBtn')?.nextElementSibling,
+          document.querySelector('#expensesCategoryBtn')?.nextElementSibling,
+          document.querySelector('#transportCategoryBtn')?.nextElementSibling,
+          document.querySelector('#multimediaCategoryBtn')?.nextElementSibling,
+          document.querySelector('#savingsCategoryBtn')?.nextElementSibling,
+          document.querySelector('#othersCategoryBtn')?.nextElementSibling
+        ].filter(Boolean);
+        allPanels.forEach(panel => {
+          panel.querySelectorAll('.budui-block').forEach(block => {
+            const first = block.querySelectorAll('.budui-half')[0];
+            const second = block.querySelectorAll('.budui-half')[1];
+            const totalField = block.querySelector('.budui-total');
+            if (first && second && totalField) {
+              const firstFilled = first.value.trim() !== '';
+              const secondFilled = second.value.trim() !== '';
+              let firstPaid = first.classList.contains('budui-paid');
+              let secondPaid = second.classList.contains('budui-paid');
+              let paid = false;
+              if (firstFilled && firstPaid && !secondFilled) {
+                paid = true;
+                second.classList.add('budui-paid');
+                secondPaid = true;
+              } else if (!firstFilled && secondFilled && secondPaid) {
+                paid = true;
+                first.classList.add('budui-paid');
+                firstPaid = true;
+              } else if (firstFilled && secondFilled && firstPaid && secondPaid) {
+                paid = true;
+              }
+              if (paid) {
+                totalField.classList.add('budui-paid');
+              } else {
+                totalField.classList.remove('budui-paid');
+              }
+            }
+          });
+        });
+      }
+    }
+    if (user && incomePanel) {
+      if (typeof loadIncomeFromFirestore === 'function') {
+        loadIncomeFromFirestore().then(onSectionLoaded).catch(onSectionLoaded);
+      } else { onSectionLoaded(); }
+    } else { onSectionLoaded(); }
+    if (user && housingPanel) {
+      if (typeof loadHousingFromFirestore === 'function') {
+        loadHousingFromFirestore().then(onSectionLoaded).catch(onSectionLoaded);
+      } else { onSectionLoaded(); }
+    } else { onSectionLoaded(); }
+    if (user && transportPanel) {
+      if (typeof loadTransportFromFirestore === 'function') {
+        loadTransportFromFirestore().then(onSectionLoaded).catch(onSectionLoaded);
+      } else { onSectionLoaded(); }
+    } else { onSectionLoaded(); }
+    if (user && multimediaPanel && typeof loadMultiMediaFromFirestore === 'function') {
+      loadMultiMediaFromFirestore().then(onSectionLoaded).catch(onSectionLoaded);
+    } else { onSectionLoaded(); }
+    if (user && savingsPanel && typeof loadSavingsFromFirestore === 'function') {
+      loadSavingsFromFirestore().then(onSectionLoaded).catch(onSectionLoaded);
+    } else { onSectionLoaded(); }
+    if (user && othersPanel && typeof loadOthersFromFirestore === 'function') {
+      loadOthersFromFirestore().then(onSectionLoaded).catch(onSectionLoaded);
+    } else { onSectionLoaded(); }
+  });
+// ===============================
+
+
+  //==============================ACCORDION LOGIC=============================
+  // Accordion expand/collapse logic
+  document.querySelectorAll('.budui-accordion-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetId = btn.getAttribute('data-target');
+      const panel = document.getElementById(targetId);
+      if (!panel) return;
+      const isOpen = panel.style.display === 'block';
+      // Close all panels
+      document.querySelectorAll('.budui-accordion-panel').forEach(p => p.style.display = 'none');
+      // Open this one if it was closed
+      if (!isOpen) panel.style.display = 'block';
+    });
+  });
+
+
+  //==============================BUDGET DASHBOARD RENDERING=============================
+  // Persistent login: listen for auth state changes
+  auth.onAuthStateChanged(function(user) {
+    const appView = document.getElementById("appView");
+    const loginView = document.getElementById("loginView");
+    if (!appView || !loginView) return;
+    if (user) {
+      // User is signed in, show dashboard
+      loginView.classList.add("hidden");
+      appView.classList.remove("hidden");
+      // Hide daily quote if present
+      var dailyQuote = document.getElementById("dailyQuote");
+      if (dailyQuote) dailyQuote.style.display = "none";
+      renderBudgetDashboard();
+    } else {
+      // User is signed out, show login
+      appView.classList.add("hidden");
+      loginView.classList.remove("hidden");
+    }
+  });
+
+
+  //==============================INITIAL CHECK=============================
+  // Only run if on Budget UI and user is logged in (appView is visible)
+  const appView = document.getElementById("appView");
+  const loginView = document.getElementById("loginView");
+  if (!appView || !loginView) return;
+
+  // Observe login/appView visibility
+  const observer = new MutationObserver(() => {
+    if (!appView.classList.contains("hidden") && loginView.classList.contains("hidden")) {
+      renderBudgetDashboard();
+    }
+  });
+  observer.observe(appView, { attributes: true, attributeFilter: ["class"] });
+  observer.observe(loginView, { attributes: true, attributeFilter: ["class"] });
+
+  // Show the dashboard and attach events
+  async function renderBudgetDashboard() {
+    // Show dashboard panel and clear dynamic content
+    if (document.getElementById("dashboardPanel")) {
+      document.getElementById("dashboardPanel").style.display = "block";
+    }
+    const dashboardContent = document.getElementById("dashboardContent");
+    if (dashboardContent) dashboardContent.innerHTML = "";
+
+    // Link login button to dashboard (after successful login)
+    const loginBtn = document.getElementById("loginBtn");
+    if (loginBtn) {
+      loginBtn.addEventListener("click", function() {
+        setTimeout(() => {
+          if (!appView.classList.contains("hidden") && loginView.classList.contains("hidden")) {
+            renderBudgetDashboard();
+          }
+        }, 500); // Wait for login logic to complete
+      });
+    }
+  }
+
+
+  //==============================SPENDING MODAL LOGIC=============================
+  // --- Spending Entries State ---
+  let spendingEntries = [];
+  // --- Firestore Save/Load for Spending ---
+  async function saveSpendingToFirestore() {
+    const user = auth.currentUser;
+    if (!user) return;
+    await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).set({ ...((await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get()).data() || {}), spending: { entries: spendingEntries } });
+  }
+
+async function loadSpendingFromFirestore() {
+    spendingReady = false;
+    const user = auth.currentUser;
+    if (!user) { spendingReady = true; return; }
+    const doc = await db.collection('users').doc(user.uid).collection('budget').doc(currentMonth).get();
+    if (!doc.exists || !doc.data().spending) { spendingReady = true; return; }
+    const { entries } = doc.data().spending;
+    if (Array.isArray(entries)) {
+      spendingEntries = entries;
+      renderSpendingList();
+      if (typeof updateBudgetAccordionTotals === 'function') updateBudgetAccordionTotals();
+    }
+    spendingReady = true;
+}
+  let editingSpendingIndex = null;
+
+  // --- Spending Modal Logic ---
+  const addSpendingBtn = document.getElementById('addSpendingBtn');
+  const spendingList = document.getElementById('spendingList');
+  const spendingTotal = document.getElementById('spendingTotal');
+  const entryModal = document.getElementById('buduiEntryModal');
+  const modalEdit = document.getElementById('modalEntryEdit');
+  const modalInfo = document.getElementById('modalEntryInfo');
+  const modalEditDesc = document.getElementById('modalEditDesc');
+  const modalEditAmt = document.getElementById('modalEditAmt');
+  const modalEditConfirmBtn = document.getElementById('modalEditConfirmBtn');
+  const closeEntryModal = document.getElementById('closeEntryModal');
+  const modalEditBtn = document.getElementById('modalEditBtn');
+  const modalDeleteBtn = document.getElementById('modalDeleteBtn');
+  const modalEditInitBtn = document.getElementById('modalEditInitBtn');
+  const modalEditInitDeleteBtn = document.getElementById('modalEditInitDeleteBtn');
+  const modalEditInitCancelBtn = document.getElementById('modalEditInitCancelBtn');
+
+  function openSpendingModal(mode, entryIdx = null) {
+    // Re-select all modal elements to ensure correct references after month changes
+    let entryModal = document.getElementById('buduiEntryModal');
+    let modalEdit = document.getElementById('modalEntryEdit');
+    let modalInfo = document.getElementById('modalEntryInfo');
+    let modalEditDesc = document.getElementById('modalEditDesc');
+    let modalEditAmt = document.getElementById('modalEditAmt');
+    let modalEditConfirmBtn = document.getElementById('modalEditConfirmBtn');
+    const modalEditBtnRow = document.getElementById('modalEditBtnRow');
+    const modalEditInitBtnRow = document.getElementById('modalEditInitBtnRow');
+    const modalInfoBtnRow = document.getElementById('modalInfoBtnRow');
+    if (!entryModal || !modalEdit || !modalInfo || !modalEditDesc || !modalEditAmt || !modalEditConfirmBtn) {
+      alert('Spending modal not found.'); return;
+    }
+    entryModal.style.display = 'flex';
+    // Position modal at current viewport scroll position
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    entryModal.style.top = scrollTop + 'px';
+    // Prevent body scrolling while modal is open
+    document.body.style.overflow = 'hidden';
+    if (mode === 'add') {
+      modalEdit.style.display = 'flex';
+      modalInfo.style.display = 'none';
+      modalEditBtnRow.style.display = 'flex';
+      if (modalEditInitBtnRow) modalEditInitBtnRow.style.display = 'none';
+      if (modalInfoBtnRow) modalInfoBtnRow.style.display = 'none';
+      modalEditDesc.value = '';
+      modalEditAmt.value = '$';
+      editingSpendingIndex = null;
+      modalEditConfirmBtn.textContent = 'Add';
+    } else if (mode === 'edit' && entryIdx !== null) {
+      // Initial edit view: show fields, but with Edit/Delete/Cancel
+      modalEdit.style.display = 'flex';
+      modalInfo.style.display = 'none';
+      if (modalEditBtnRow) modalEditBtnRow.style.display = 'none';
+      if (modalEditInitBtnRow) modalEditInitBtnRow.style.display = 'flex';
+      if (modalInfoBtnRow) modalInfoBtnRow.style.display = 'none';
+      const entry = spendingEntries[entryIdx];
+      modalEditDesc.value = entry.desc;
+      modalEditAmt.value = '$' + entry.amt;
+      editingSpendingIndex = entryIdx;
+    } else if (mode === 'info' && entryIdx !== null) {
+      modalEdit.style.display = 'none';
+      modalInfo.style.display = 'block';
+      if (modalEditBtnRow) modalEditBtnRow.style.display = 'none';
+      if (modalEditInitBtnRow) modalEditInitBtnRow.style.display = 'none';
+      if (modalInfoBtnRow) modalInfoBtnRow.style.display = 'flex';
+      const entry = spendingEntries[entryIdx];
+      document.getElementById('modalEntryDesc').textContent = entry.desc;
+      document.getElementById('modalEntryAmount').textContent = formatAmount(entry.amt);
+      editingSpendingIndex = entryIdx;
+    }
+  }
+
+  function closeSpendingModal() {
+    entryModal.style.display = 'none';
+    editingSpendingIndex = null;
+    // Restore body scrolling
+    document.body.style.overflow = '';
+  }
+
+  // Close modal when clicking outside the modal content
+  if (entryModal) {
+    entryModal.addEventListener('click', function(e) {
+      if (e.target === entryModal) {
+        closeSpendingModal();
+      }
+    });
+  }
+
+  function renderSpendingList() {
+    if (!spendingEntries.length) {
+      spendingList.textContent = 'No spending entries yet.';
+    } else {
+      spendingList.innerHTML = '';
+      
+      spendingEntries.forEach((entry, idx) => {
+        const div = document.createElement('div');
+        div.className = 'budui-list-entry';
+        
+        div.style.cursor = 'pointer';
+        div.onclick = () => openSpendingModal('edit', idx);
+        // Description left, amount right
+        const descSpan = document.createElement('span');
+        descSpan.textContent = entry.desc;
+        const amtSpan = document.createElement('span');
+        amtSpan.className = 'budui-list-amount';
+        amtSpan.textContent = formatAmount(entry.amt);
+        div.appendChild(descSpan);
+        div.appendChild(amtSpan);
+        spendingList.appendChild(div);
+      });
+    }
+    // Update total
+    const total = spendingEntries.reduce((sum, e) => sum + parseFloat(e.amt || 0), 0);
+    const spendingPanelTotal = document.getElementById('spendingPanelTotal');
+    if (spendingPanelTotal) spendingPanelTotal.textContent = `Total: ${formatAmount(total)}`;
+    const catBtn = document.getElementById('spendingCategoryTotalBtn');
+    if (catBtn) catBtn.textContent = formatAmount(total);
+    const progSpend = document.getElementById('buduiProgressSpending');
+    if (progSpend) progSpend.textContent = formatAmount(total);
+    // Save to Firestore on every change
+    saveSpendingToFirestore();
+    // Force update of summary bar and current expenses after spending is rendered
+    if (typeof updateSummaryTotals === 'function') updateSummaryTotals();
+    // Ensure paid status visuals update (totals, etc)
+    if (typeof updateBudgetAccordionTotals === 'function') updateBudgetAccordionTotals();
+  }
+// Accordion open/close: add .open class to main-cat when open
+document.querySelectorAll('.budui-accordion-btn.main-cat').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const panel = btn.nextElementSibling;
+    if (!panel) return;
+    setTimeout(() => {
+      if (panel.style.display === 'block') {
+        btn.classList.add('open');
+      } else {
+        btn.classList.remove('open');
+      }
+    }, 10);
+  });
+});
+
+  if (addSpendingBtn) {
+    addSpendingBtn.onclick = () => {
+      if (!spendingReady) {
+        showWarningMsg('Please wait, loading latest spending data...');
+        return;
+      }
+      openSpendingModal('add');
+    };
+}
+  if (closeEntryModal) {
+    closeEntryModal.onclick = closeSpendingModal;
+  }
+  if (modalEditInitCancelBtn) {
+    modalEditInitCancelBtn.onclick = closeSpendingModal;
+  }
+  if (modalEditInitBtn) {
+    modalEditInitBtn.onclick = function() {
+      // Save the entry directly
+      const desc = modalEditDesc.value.trim();
+      const amt = parseFloat(modalEditAmt.value.replace(/[$,]/g, ''));
+      if (!desc || isNaN(amt)) {
+        showWarningMsg('Please enter a description and amount.');
+        return;
+      }
+      if (editingSpendingIndex !== null) {
+        spendingEntries[editingSpendingIndex] = { desc, amt };
+      }
+      renderSpendingList();
+      updateBudgetAccordionTotals();
+      closeSpendingModal();
+    };
+  }
+  if (modalEditInitDeleteBtn) {
+    modalEditInitDeleteBtn.onclick = function() {
+      if (editingSpendingIndex !== null) {
+        setupDeleteConfirm(modalEditInitDeleteBtn, function() {
+          spendingEntries.splice(editingSpendingIndex, 1);
+          renderSpendingList();
+          closeSpendingModal();
+        });
+      }
+    };
+  }
+  // Load spending from Firestore on login
+  auth.onAuthStateChanged(function(user) {
+    if (user) {
+      loadSpendingFromFirestore();
+    } else {
+      spendingEntries = [];
+      renderSpendingList();
+    }
+  });
+  if (modalEditConfirmBtn) {
+    modalEditConfirmBtn.onclick = function() {
+      const desc = modalEditDesc.value.trim();
+      const amt = parseFloat(modalEditAmt.value.replace(/[$,]/g, ''));
+      if (!desc || isNaN(amt)) {
+        showWarningMsg('Please enter a description and amount.');
+        return;
+      }
+      if (editingSpendingIndex === null) {
+        // Add new
+        spendingEntries.push({ desc, amt });
+      } else {
+        // Edit existing
+        spendingEntries[editingSpendingIndex] = { desc, amt };
+      }
+      renderSpendingList();
+      updateBudgetAccordionTotals();
+      closeSpendingModal();
+    };
+  }
+  if (modalEditBtn) {
+    modalEditBtn.onclick = function() {
+      if (editingSpendingIndex !== null) {
+        // Switch to edit mode
+        const modalEditBtnRow = document.getElementById('modalEditBtnRow');
+        const modalInfoBtnRow = document.getElementById('modalInfoBtnRow');
+        modalEdit.style.display = 'flex';
+        modalInfo.style.display = 'none';
+        if (modalEditBtnRow) modalEditBtnRow.style.display = 'flex';
+        if (modalInfoBtnRow) modalInfoBtnRow.style.display = 'none';
+        const entry = spendingEntries[editingSpendingIndex];
+        modalEditDesc.value = entry.desc;
+        modalEditAmt.value = '$' + entry.amt;
+        modalEditConfirmBtn.textContent = 'Save';
+      }
+    };
+  }
+  if (modalDeleteBtn) {
+    modalDeleteBtn.onclick = function() {
+      if (editingSpendingIndex !== null) {
+        setupDeleteConfirm(modalDeleteBtn, function() {
+          spendingEntries.splice(editingSpendingIndex, 1);
+          renderSpendingList();
+          closeSpendingModal();
+        });
+      }
+    };
+  }
+
+  // Initial render
+  renderSpendingList();
+
+});
+
+
+// ========== BOUNCING BUBBLES EFFECT ==========
+(function() {
+  const BUBBLE_COUNT = 15;
+  const MIN_SIZE = 30;
+  const MAX_SIZE = 120;
+  const MIN_SPEED = 0.7;
+  const MAX_SPEED = 10.0; // Even lower top speed
+  const SLOW_FACTOR = 0.7; // More momentum
+  const DISTURB_FORCE = 0; // Disruption disabled
+  const FRICTION =  0.99; // Even higher resistance (slows down faster)
+  const MIN_VELOCITY = 0.28; // Minimum speed for any bubble
+  const MIN_MOMENTUM = 0.22; // Minimum momentum (speed * mass)
+  const BUBBLE_PUSH = 0; // Disruption disabled
+
+  window.bubbles = [];
+  window.container = null;
+  window.animationId = null;
+
+  window.createBubbles = function createBubbles() {
+    const terminal = document.getElementById('terminal');
+    if (!terminal) return;
+    
+    container = document.createElement('div');
+    container.className = 'bubble-container';
+    terminal.insertBefore(container, terminal.firstChild);
+
+    // Get container dimensions after inserting
+    const rect = container.getBoundingClientRect();
+    const w = rect.width || window.innerWidth;
+    const h = rect.height || window.innerHeight;
+
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+      const size = MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE);
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.style.width = size + 'px';
+      bubble.style.height = size + 'px';
+      
+      const speed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED);
+      const angle = Math.random() * Math.PI * 2;
+      
+      bubbles.push({
+        el: bubble,
+        x: Math.random() * (w - size),
+        y: Math.random() * (h - size),
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: size
+      });
+      
+      container.appendChild(bubble);
+    }
+  }
+
+  function disturbBubbles(x, y) {
+    if (typeof x !== 'number' || typeof y !== 'number') {
+      // Change direction only, keep speed, add small push
+      bubbles.forEach(b => {
+        const angle = Math.random() * Math.PI * 2;
+        let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        speed += BUBBLE_PUSH;
+        b.vx = Math.cos(angle) * speed;
+        b.vy = Math.sin(angle) * speed;
+      });
+    } else {
+      // Change direction away from (x, y), keep speed, add small push
+      bubbles.forEach(b => {
+        const cx = b.x + b.size/2;
+        const cy = b.y + b.size/2;
+        const dx = cx - x;
+        const dy = cy - y;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        let speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        speed += BUBBLE_PUSH;
+        b.vx = (dx/dist) * speed;
+        b.vy = (dy/dist) * speed;
+      });
+    }
+  }
+
+  function handleBubbleCollisions() {
+    for (let i = 0; i < bubbles.length; i++) {
+      for (let j = i + 1; j < bubbles.length; j++) {
+        const a = bubbles[i];
+        const b = bubbles[j];
+        const dx = (a.x + a.size/2) - (b.x + b.size/2);
+        const dy = (a.y + a.size/2) - (b.y + b.size/2);
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const minDist = (a.size + b.size) / 2;
+        if (dist < minDist && dist > 0) {
+          // Simple elastic collision
+          const overlap = minDist - dist;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          // Push them apart
+          a.x += nx * overlap/2;
+          a.y += ny * overlap/2;
+          b.x -= nx * overlap/2;
+          b.y -= ny * overlap/2;
+          // Exchange velocity
+          const dvx = a.vx - b.vx;
+          const dvy = a.vy - b.vy;
+          const dot = dvx * nx + dvy * ny;
+          if (dot < 0) {
+            a.vx -= dot * nx;
+            a.vy -= dot * ny;
+            b.vx += dot * nx;
+            b.vy += dot * ny;
+          }
+        }
+      }
+    }
+  }
+
+  function keepBubblesMoving() {
+    bubbles.forEach(b => {
+      const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+      if (speed < MIN_MOMENTUM) {
+        // Preserve direction, boost velocity to minimum momentum
+        const angle = Math.atan2(b.vy, b.vx);
+        b.vx = Math.cos(angle) * MIN_MOMENTUM;
+        b.vy = Math.sin(angle) * MIN_MOMENTUM;
+      }
+    });
+  }
+
+  window.animateBubbles = function animateBubbles() {
+    const rect = container.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+
+    handleBubbleCollisions();
+    keepBubblesMoving();
+    bubbles.forEach(b => {
+      b.x += b.vx * SLOW_FACTOR;
+      b.y += b.vy * SLOW_FACTOR;
+      b.vx *= FRICTION;
+      b.vy *= FRICTION;
+      // Bounce off walls
+      if (b.x <= 0) {
+        b.x = 0;
+        b.vx = Math.abs(b.vx);
+      } else if (b.x + b.size >= w) {
+        b.x = w - b.size;
+        b.vx = -Math.abs(b.vx);
+      }
+      if (b.y <= 0) {
+        b.y = 0;
+        b.vy = Math.abs(b.vy);
+      } else if (b.y + b.size >= h) {
+        b.y = h - b.size;
+        b.vy = -Math.abs(b.vy);
+      }
+      b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+    });
+    animationId = requestAnimationFrame(animateBubbles);
+  }
+  
+  function init() {
+    // Only apply bubble effect if winter theme is active
+    const themeEl = document.body.classList.contains('pipboy-theme') ? document.body : document.querySelector('.pipboy-theme');
+    if (!themeEl) return;
+    const isWinter = themeEl.getAttribute('data-theme') === 'winter';
+    if (!isWinter) return;
+    createBubbles();
+    animateBubbles();
+    
+    // User actions disturb bubbles
+    let skipNextTapDisturb = false;
+    let lastTouch = null;
+    const disturbHandler = e => {
+      if (skipNextTapDisturb) {
+        skipNextTapDisturb = false;
+        return;
+      }
+      let x, y;
+      if (e.touches && e.touches.length) {
+        x = e.touches[0].clientX;
+        y = e.touches[0].clientY;
+      } else if (typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+        x = e.clientX;
+        y = e.clientY;
+      }
+      disturbBubbles(x, y);
+    };
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
