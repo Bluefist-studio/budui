@@ -129,7 +129,7 @@
           <li>All calculations are based on a two-week period, matching most payroll schedules.</li>
           <li>For each category, the app adds the "First" and "Second" amount fields. The <b>Total</b> field is their sum of both payment fields.</li>
           <li><b>Income Forecast</b> and <b>Expense Forecast</b> show expected totals for the period. <b>Account Balance</b> is <b>Income Forecast - Expense Forecast</b> and should match what is currently in your account.</li>
-          <li><b>Current Expenses</b> shows the sum of all paid expenses for the current period.</li>
+          <li><b>Expenses Remaining</b> shows how much expense budget is left after paid expenses (<b>Expense Forecast - Paid Expenses</b>).</li>
           <li>The<b> Progress Bar</b> visually shows remaining budget vs. spending.</li>
         </ul>
         <h2 style="color:#ccc;">Income Section</h2>
@@ -162,7 +162,7 @@
         <h2 style="color:#ccc;">Paid Mechanic</h2>
         <ul>
           <li>Mark expenses as <b>paid</b> for the current biweekly period to track which bills have been settled.</li>
-          <li>While the section is locked, click an expense entry to mark it as paid. Paid expenses are visually highlighted and included in the <b>Current Expenses</b> total.</li>
+          <li>While the section is locked, click an expense entry to mark it as paid. Paid expenses are visually highlighted and deducted from the <b>Expenses Remaining</b> total.</li>
           <li>This helps you avoid double-paying and gives a clear view of what still needs to be paid.</li>
           <li><b>Monthly Payments:</b> For bills that are paid only once a month (e.g., rent, insurance), the app tracks their payment status within the biweekly cycle. If a monthly payment is marked as paid in one biweekly period, both biweekly periods are updated accordingly. This ensures you only pay these bills once per month and prevents confusion.</li>
           <li><b>Reset All Paid Status Button:</b> In the profile menu, use this button to clear the paid status for all expenses and income entries in the current cycle. This is useful at the start of a new month, allowing you to begin tracking payments from scratch. Be careful: resetting will mark all entries as unpaid, so only use it when you want to start fresh.</li>
@@ -203,7 +203,7 @@
       <button id="helpReticleBtn" onclick="document.body.style.overflow='hidden';document.getElementById('buduiTutorialOverlay').style.display='block'">Help<span class="reticle-bottom-left"></span><span class="reticle-bottom-right"></span></button>
     </div>
     <div style="text-align:center; margin-bottom:10px;">
-      <span id="currentMonthDisplay" style="font-size:20px; cursor:pointer; color:#4ad; background:#232a36; padding:6px 18px; border-radius:8px; display:inline-block;">Month: default</span>
+      <span id="currentMonthDisplay" class="budui-month-display" style="font-size:20px; cursor:pointer; padding:6px 18px; border-radius:8px; display:inline-block;">Month: default</span>
     </div>
     
     <div class="budui-progress-bar-wrapper">
@@ -229,7 +229,7 @@
         <div class="budui-summary-value" id="buduiIncome">$0.00</div>
       </div>
       <div class="budui-summary-card">
-        <div class="budui-summary-label">Current Expenses</div>
+        <div class="budui-summary-label">Expenses Remaining</div>
         <div class="budui-summary-value" id="buduiexpensesCurrent">$0.00</div>
       </div>
       <div class="budui-summary-card">
