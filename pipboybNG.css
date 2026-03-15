@@ -952,6 +952,18 @@ font-size: 12px !important;
     background: #0057b8 !important;
   }
 
+  [data-theme="minimal"] #helpReticleBtn::before,
+  [data-theme="minimal"] #helpReticleBtn::after {
+    background: #0057b8 !important;
+    box-shadow: 0 0 8px 2px rgba(0, 87, 184, 0.4) !important;
+  }
+
+  [data-theme="minimal"] #helpReticleBtn .reticle-bottom-left,
+  [data-theme="minimal"] #helpReticleBtn .reticle-bottom-right {
+    background: #0057b8 !important;
+    box-shadow: 0 0 8px 2px rgba(0, 87, 184, 0.4) !important;
+  }
+
   [data-theme="minimal"] .budui-list-entry *,
   [data-theme="minimal"] .budui-list-entry.recurring-entry * {
       font-size: 16px !important;
@@ -2494,6 +2506,39 @@ body.modal-open {
     text-shadow: 0 0 1px var(--color-accent-strong) !important;
   color: var(--color-accent-strong) !important;
   text-shadow: 0 0 6px var(--color-accent-summary) !important;
+}
+
+/* ===================================
+   MONTH BUTTON THEME-AWARE STYLING
+   =================================== */
+
+/* Default/Pipboy Theme - Green */
+.budui-month-display {
+  color: var(--color-accent);
+  background: var(--color-bg-panel-strong);
+  border: 1px solid var(--color-accent-mid);
+}
+
+/* Winter Theme - Icy Blue */
+[data-theme="winter"] .budui-month-display {
+  color: var(--color-accent);
+  background: var(--color-bg-panel-strong);
+  border: 1px solid var(--color-accent-mid);
+}
+
+/* Comic/Minimal Theme - Blue & Black */
+[data-theme="minimal"] .budui-month-display {
+  color: var(--color-accent);
+  background: var(--color-bg-panel-strong);
+  border: 1px solid var(--color-accent-mid);
+}
+
+/* Script/Google Theme - Material Blue */
+[data-theme="google"] .budui-month-display {
+  color: var(--color-accent);
+  background: var(--color-bg-panel-strong);
+  border: 1px solid var(--color-accent-mid);
+}
   margin-bottom: 10px;
 }
 
