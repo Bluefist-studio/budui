@@ -2539,8 +2539,6 @@ body.modal-open {
   background: var(--color-bg-panel-strong);
   border: 1px solid var(--color-accent-mid);
 }
-  margin-bottom: 10px;
-}
 
 /* ============================
    CONFIRMATION MODAL (YES/NO)
